@@ -90,6 +90,12 @@ const CODE_CHIP = { fill: "#d8e2e6", text: "#234b52" } as const;
 
 export const CODE_CHIP_RADIUS = 12;
 
+/**
+ * chip 的高度。比內文行距（1.55em）矮一截，連續幾行的 chip 才不會上下相連，
+ * 又不會把行框撐開。
+ */
+export const CODE_CHIP_HEIGHT = "1.2em";
+
 export const PALETTES: Record<ThemeName, Palette> = {
   dark: {
     background: "linear-gradient(135deg, #1d2a3a 0%, #0c1320 100%)",

@@ -53,6 +53,7 @@ test("內文的程式碼渲染成原稿的淺色 chip，且不撐開行高", asy
       color: style.color,
       radius: style.borderRadius,
       display: style.display,
+      height: span.getBoundingClientRect().height / scale,
       lineHeight: line.getBoundingClientRect().height / scale,
     };
   });
@@ -61,9 +62,11 @@ test("內文的程式碼渲染成原稿的淺色 chip，且不撐開行高", asy
   expect(chip!.background).toBe("rgb(216, 226, 230)");
   expect(chip!.color).toBe("rgb(35, 75, 82)");
   expect(chip!.radius).toBe("12px");
-  // display: inline 才不會讓 chip 的垂直內距把行框推高
-  expect(chip!.display).toBe("inline");
+  // 行框不能被 chip 撐高，行位才對得上原稿
+  expect(chip!.display).toBe("inline-block");
   expect(chip!.lineHeight).toBeCloseTo(METRICS.body.fontSize * METRICS.body.lineHeight, 0);
+  // chip 比行距矮，連續幾行的 chip 上下才不會黏成一整片
+  expect(chip!.height).toBeLessThan(chip!.lineHeight - 8);
 });
 
 test("重新整理後內容還在", async ({ page }) => {
