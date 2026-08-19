@@ -42,3 +42,9 @@ next-env.d.ts
 
 # local planning notes
 .scratch/
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

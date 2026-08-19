@@ -3,8 +3,9 @@
 把 Canva 上的 Instagram 貼文版型搬進瀏覽器：貼一份 Markdown，就能匯出 1080×1350 的 PNG。
 
 ```bash
-pnpm dev      # http://localhost:3000
-pnpm check    # oxfmt --check + oxlint + tsc --noEmit
+pnpm dev       # http://localhost:3000
+pnpm check     # oxfmt --check + oxlint + tsc --noEmit
+pnpm test:e2e  # headless 驗證匯出結果（自己起 dev server）
 ```
 
 ## 版型來源
@@ -49,6 +50,21 @@ pnpm check    # oxfmt --check + oxlint + tsc --noEmit
 
 - 圖片請**上傳本機檔案**（會存成 data URL）。遠端網址會因為 CORS 汙染 canvas 而匯出失敗。
 - 瀏覽器要有真實使用者點擊才會存檔，程式化觸發的下載會被丟掉。
+
+## 驗證
+
+`pnpm test:e2e` 用 Playwright 在 headless Chromium 裡跑完整流程，不會碰到你平常用的瀏覽器，
+也不會彈出系統的存檔對話框（Playwright 自己接下 download 事件）：
+
+- 四種頁型的圖片都落在量出來的版位上，且不越過 SWIPE 膠囊（結尾頁沒有膠囊，不套這條）
+- 程式碼 chip 的底色、文字色、圓角正確，且沒有撐開行高
+- 編輯後重新整理，內容還在
+- 匯出的 ZIP 有五張 1080×1350 的 PNG，並直接對 PNG **取樣像素**確認 chip 與圖片
+  真的被畫進去了 —— 光看預覽的 DOM 不足以證明 html-to-image 有正確處理
+
+取樣座標是從 DOM 量出來後換算成畫布座標，不是寫死的數字，版型調動時不需要跟著改。
+
+測試跑在 dev server 上，所以剛改完原始碼馬上跑可能會撞到 HMR 還沒重編；重跑一次就好。
 
 ## 工具鏈
 

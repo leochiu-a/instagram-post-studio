@@ -203,9 +203,10 @@ function ContentArea({
   palette: Palette;
 }) {
   const hasImage = Boolean(slide.imageUrl) && slide.imageShape !== "none";
-  const slot = slide.imageShape === "square" ? METRICS.image.square.size : null;
-  const imageWidth = slot ?? METRICS.image.banner.width;
-  const imageHeight = slot ?? METRICS.image.banner.height;
+  const square = slide.imageShape === "square" ? METRICS.image.square.size : null;
+  // 橫幅在內頁是內容區滿寬（比封面的 banner 略窄，內容區本來就窄一點）
+  const imageWidth = square ?? contentWidth;
+  const imageHeight = square ?? METRICS.image.banner.height;
 
   return (
     <div
