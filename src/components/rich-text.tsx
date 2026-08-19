@@ -15,12 +15,14 @@ function inline(text: string, palette: Palette) {
     }
     if (part.startsWith("`") && part.endsWith("`")) {
       return (
-        // display: inline 讓 chip 的垂直內距溢出行框，行高與行位不被撐開
+        // display: inline 讓 chip 的垂直內距溢出行框，行高與行位不被撐開；
+        // 左右各留一點 margin，不然內距會把前後那個空白吃掉，看起來就跟正文黏在一起
         <span
           key={i}
           style={{
             display: "inline",
-            padding: "0.1em 0.25em",
+            margin: "0 0.14em",
+            padding: "0.1em 0.22em",
             borderRadius: CODE_CHIP_RADIUS,
             background: palette.code.fill,
             color: palette.code.text,
