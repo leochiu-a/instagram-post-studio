@@ -21,7 +21,11 @@ export const METRICS = {
 
   coverTitle: { fontSize: 88, lineHeight: 1.5, letterSpacing: -0.011 },
 
-  coverImage: {
+  /** 內文與圖片之間的間距 */
+  bodyImageGap: 48,
+
+  /** 圖片版位共用同一組尺寸，封面與內頁都取用這裡 */
+  image: {
     banner: { top: 361.21, left: 71.12, width: 937.76, height: 278.61 },
     square: { top: 301.46, left: 344.75, size: 390.5 },
   },

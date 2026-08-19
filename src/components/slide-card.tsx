@@ -6,6 +6,9 @@ import type { Slide, ThemeName } from "@/lib/types";
 
 const { padding, contentWidth, contentLeft } = METRICS;
 
+/** 內容區底邊，留出 SWIPE 膠囊的空間 */
+const CONTENT_BOTTOM = 150;
+
 /** 絕對定位的圖片版位，封面與結尾頁共用 */
 function ImageSlot({
   url,
@@ -108,8 +111,8 @@ function CoverBody({
   slide: Extract<Slide, { kind: "cover" }>;
   palette: Palette;
 }) {
-  const banner = METRICS.coverImage.banner;
-  const square = METRICS.coverImage.square;
+  const banner = METRICS.image.banner;
+  const square = METRICS.image.square;
   return (
     <>
       {slide.imageUrl && slide.imageShape === "banner" && (
@@ -182,39 +185,68 @@ function ContentBody({
       >
         {slide.heading}
       </div>
+      <ContentArea slide={slide} palette={palette} />
+    </>
+  );
+}
+
+/**
+ * 內文 + 圖片。圖片錨在內容區底部並保有完整版位 —— 原稿也是這樣排的
+ * （內文固定高度、圖片緊接在下方）。這樣內文再長也只會壓到自己，
+ * 不會把圖片擠成零高度而無聲消失。
+ */
+function ContentArea({
+  slide,
+  palette,
+}: {
+  slide: Extract<Slide, { kind: "content" }>;
+  palette: Palette;
+}) {
+  const hasImage = Boolean(slide.imageUrl) && slide.imageShape !== "none";
+  const slot = slide.imageShape === "square" ? METRICS.image.square.size : null;
+  const imageWidth = slot ?? METRICS.image.banner.width;
+  const imageHeight = slot ?? METRICS.image.banner.height;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: METRICS.body.top,
+        left: contentLeft,
+        width: contentWidth,
+        bottom: CONTENT_BOTTOM,
+        overflow: "hidden",
+      }}
+    >
       <div
         style={{
           position: "absolute",
-          top: METRICS.body.top,
-          left: contentLeft,
-          width: contentWidth,
-          bottom: 150,
-          display: "flex",
-          flexDirection: "column",
+          inset: 0,
+          bottom: hasImage ? imageHeight + METRICS.bodyImageGap : 0,
+          overflow: "hidden",
           fontSize: METRICS.body.fontSize,
           lineHeight: METRICS.body.lineHeight,
           letterSpacing: `${METRICS.body.letterSpacing}em`,
           color: palette.text,
         }}
       >
-        <div>
-          <RichText value={slide.body} palette={palette} />
-        </div>
-        {slide.imageUrl && (
-          <img
-            src={slide.imageUrl}
-            alt=""
-            style={{
-              flex: 1,
-              minHeight: 0,
-              marginTop: 48,
-              objectFit: "contain",
-              objectPosition: "left top",
-            }}
-          />
-        )}
+        <RichText value={slide.body} palette={palette} />
       </div>
-    </>
+      {hasImage && (
+        <img
+          src={slide.imageUrl}
+          alt=""
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            width: imageWidth,
+            height: imageHeight,
+            objectFit: "cover",
+          }}
+        />
+      )}
+    </div>
   );
 }
 

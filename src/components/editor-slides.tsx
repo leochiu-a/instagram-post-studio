@@ -17,6 +17,30 @@ const SHAPES: { value: ImageShape; label: string }[] = [
   { value: "none", label: "不放圖" },
 ];
 
+function ShapeField({
+  value,
+  onChange,
+}: {
+  value: ImageShape;
+  onChange: (shape: ImageShape) => void;
+}) {
+  return (
+    <Field label="圖片版位">
+      <div className="flex gap-2">
+        {SHAPES.map((shape) => (
+          <Button
+            key={shape.value}
+            onClick={() => onChange(shape.value)}
+            className={value === shape.value ? "ring-sky-500" : ""}
+          >
+            {shape.label}
+          </Button>
+        ))}
+      </div>
+    </Field>
+  );
+}
+
 interface EditorSlidesProps {
   slides: Slide[];
   onChange: (slides: Slide[]) => void;
@@ -49,6 +73,7 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
       heading: "新頁標題",
       body: "",
       imageUrl: "",
+      imageShape: "banner",
     });
     onChange(next);
   };
@@ -98,19 +123,10 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
                     onChange={(event) => patch(slide.id, { title: event.target.value })}
                   />
                 </Field>
-                <Field label="圖片形狀">
-                  <div className="flex gap-2">
-                    {SHAPES.map((shape) => (
-                      <Button
-                        key={shape.value}
-                        onClick={() => patch(slide.id, { imageShape: shape.value })}
-                        className={slide.imageShape === shape.value ? "ring-sky-500" : ""}
-                      >
-                        {shape.label}
-                      </Button>
-                    ))}
-                  </div>
-                </Field>
+                <ShapeField
+                  value={slide.imageShape}
+                  onChange={(imageShape) => patch(slide.id, { imageShape })}
+                />
                 <ImagePicker
                   value={slide.imageUrl}
                   onChange={(imageUrl) => patch(slide.id, { imageUrl })}
@@ -141,6 +157,10 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
                     onChange={(event) => patch(slide.id, { body: event.target.value })}
                   />
                 </Field>
+                <ShapeField
+                  value={slide.imageShape}
+                  onChange={(imageShape) => patch(slide.id, { imageShape })}
+                />
                 <ImagePicker
                   value={slide.imageUrl}
                   onChange={(imageUrl) => patch(slide.id, { imageUrl })}

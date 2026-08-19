@@ -19,6 +19,7 @@ export type Slide =
       /** 支援 **粗體**、`程式碼` 與 "- " 開頭的項目符號。 */
       body: string;
       imageUrl: string;
+      imageShape: ImageShape;
     }
   | {
       id: string;

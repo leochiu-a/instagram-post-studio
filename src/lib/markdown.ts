@@ -65,6 +65,7 @@ export function parseMarkdown(source: string): Slide[] {
         heading: h2[1].trim(),
         body: "",
         imageUrl: "",
+        imageShape: "banner",
       };
       continue;
     }
