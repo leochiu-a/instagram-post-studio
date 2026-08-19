@@ -62,8 +62,10 @@ export interface Palette {
   text: string;
   /** 頁首（handle / 時間）的顏色 */
   meta: string;
-  /** 內文 **粗體** 與 `程式碼` 的強調色 */
+  /** 內文 **粗體** 的強調色 */
   accent: string;
+  /** `程式碼` chip：淺色圓角底 + 深色字，量自原稿 */
+  code: { fill: string; text: string };
   /** SWIPE 膠囊底色 */
   swipeFill: string;
   swipeText: string;
@@ -74,14 +76,21 @@ export interface Palette {
   arrow: string;
 }
 
+/**
+ * 原稿的程式碼是深色字壓在淺色圓角底上（深淺兩版都一樣），
+ * 所以 chip 不隨配色改變。圓角 12 也是量自原稿。
+ */
+const CODE_CHIP = { fill: "#d8e2e6", text: "#234b52" } as const;
+
+export const CODE_CHIP_RADIUS = 12;
+
 export const PALETTES: Record<ThemeName, Palette> = {
   dark: {
     background: "linear-gradient(135deg, #1d2a3a 0%, #0c1320 100%)",
     text: "#ffffff",
     meta: "#ffffff",
-    // Canva 原稿在深色頁用了 #234b52，在深底上幾乎看不見；
-    // 這裡改用淺色版的強調色 #8d99ae，深淺兩版都讀得到。
     accent: "#8d99ae",
+    code: CODE_CHIP,
     swipeFill: "#2b2d42",
     swipeText: "#ffffff",
     ctaPillFill: "#234b52",
@@ -93,6 +102,7 @@ export const PALETTES: Record<ThemeName, Palette> = {
     text: "#2b2d42",
     meta: "#234b52",
     accent: "#8d99ae",
+    code: CODE_CHIP,
     swipeFill: "#2b2d42",
     swipeText: "#ffffff",
     ctaPillFill: "#234b52",

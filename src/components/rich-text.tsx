@@ -1,9 +1,9 @@
 // oxlint-disable react/no-array-index-key -- 這裡的 index 對應固定的版型欄位與逐行渲染，順序不會變
-import type { Palette } from "@/lib/theme";
+import { CODE_CHIP_RADIUS, type Palette } from "@/lib/theme";
 
 const INLINE = /(\*\*[^*]+\*\*|`[^`]+`)/g;
 
-/** 把一行文字裡的 **粗體** 與 `程式碼` 換成強調色的 span。 */
+/** 把一行文字裡的 **粗體** 與 `程式碼` 換成對應樣式的 span。 */
 function inline(text: string, palette: Palette) {
   return text.split(INLINE).map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
@@ -15,7 +15,17 @@ function inline(text: string, palette: Palette) {
     }
     if (part.startsWith("`") && part.endsWith("`")) {
       return (
-        <span key={i} style={{ color: palette.accent }}>
+        // display: inline 讓 chip 的垂直內距溢出行框，行高與行位不被撐開
+        <span
+          key={i}
+          style={{
+            display: "inline",
+            padding: "0.1em 0.25em",
+            borderRadius: CODE_CHIP_RADIUS,
+            background: palette.code.fill,
+            color: palette.code.text,
+          }}
+        >
           {part.slice(1, -1)}
         </span>
       );
