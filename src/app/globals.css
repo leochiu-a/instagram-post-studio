@@ -1,9 +1,198 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-sans);
+  --font-heading: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-body {
-  font-family: var(--font-sans);
+/*
+  Technical / instrument：近黑檯面、髮絲線、一個訊號色。
+  Latin 排在 CJK 前面，數字與英文才會用 Archivo / JetBrains Mono 的字形；
+  --font-slide 只有版型畫布在用，不要混進來改動匯出結果。
+*/
+:root {
+  --font-sans: var(--font-archivo), var(--font-slide), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), var(--font-slide), ui-monospace, monospace;
+
+  --radius: 0.375rem;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.18 0.004 285);
+  --card: oklch(0.985 0.001 285);
+  --card-foreground: oklch(0.18 0.004 285);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.004 285);
+  --primary: oklch(0.72 0.15 68);
+  --primary-foreground: oklch(0.2 0.03 68);
+  --secondary: oklch(0.965 0.002 285);
+  --secondary-foreground: oklch(0.25 0.004 285);
+  --muted: oklch(0.965 0.002 285);
+  --muted-foreground: oklch(0.5 0.005 285);
+  --accent: oklch(0.965 0.002 285);
+  --accent-foreground: oklch(0.25 0.004 285);
+  --destructive: oklch(0.55 0.2 27);
+  --border: oklch(0.18 0.004 285 / 12%);
+  --input: oklch(0.18 0.004 285 / 16%);
+  --ring: oklch(0.72 0.15 68);
+  --chart-1: oklch(0.72 0.15 68);
+  --chart-2: oklch(0.6 0.01 285);
+  --chart-3: oklch(0.48 0.008 285);
+  --chart-4: oklch(0.38 0.006 285);
+  --chart-5: oklch(0.28 0.004 285);
+  --sidebar: oklch(0.985 0.001 285);
+  --sidebar-foreground: oklch(0.18 0.004 285);
+  --sidebar-primary: oklch(0.72 0.15 68);
+  --sidebar-primary-foreground: oklch(0.2 0.03 68);
+  --sidebar-accent: oklch(0.965 0.002 285);
+  --sidebar-accent-foreground: oklch(0.25 0.004 285);
+  --sidebar-border: oklch(0.18 0.004 285 / 12%);
+  --sidebar-ring: oklch(0.72 0.15 68);
+
+  /* 檯面上的髮絲網格，1080 畫布縮到預覽欄時剛好對得上 */
+  --bench-line: oklch(1 0 0 / 3.5%);
+}
+
+.dark {
+  /* 三層檯面：#0b0b0c → #141416 → #1c1c20，靠亮度分層而不是靠陰影 */
+  --background: oklch(0.145 0.003 285);
+  --foreground: oklch(0.96 0.002 285);
+  --card: oklch(0.195 0.004 285);
+  --card-foreground: oklch(0.96 0.002 285);
+  --popover: oklch(0.195 0.004 285);
+  --popover-foreground: oklch(0.96 0.002 285);
+  --primary: oklch(0.8 0.15 73);
+  --primary-foreground: oklch(0.19 0.035 73);
+  --secondary: oklch(0.245 0.005 285);
+  --secondary-foreground: oklch(0.96 0.002 285);
+  --muted: oklch(0.245 0.005 285);
+  --muted-foreground: oklch(0.7 0.004 285);
+  --accent: oklch(0.245 0.005 285);
+  --accent-foreground: oklch(0.96 0.002 285);
+  --destructive: oklch(0.7 0.17 24);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.8 0.15 73);
+  --chart-1: oklch(0.8 0.15 73);
+  --chart-2: oklch(0.7 0.004 285);
+  --chart-3: oklch(0.56 0.004 285);
+  --chart-4: oklch(0.42 0.004 285);
+  --chart-5: oklch(0.3 0.004 285);
+  --sidebar: oklch(0.195 0.004 285);
+  --sidebar-foreground: oklch(0.96 0.002 285);
+  --sidebar-primary: oklch(0.8 0.15 73);
+  --sidebar-primary-foreground: oklch(0.19 0.035 73);
+  --sidebar-accent: oklch(0.245 0.005 285);
+  --sidebar-accent-foreground: oklch(0.96 0.002 285);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.8 0.15 73);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+
+  /*
+    CJK 不能吃 Latin 那套負字距：全形字沒有 side bearing 可以借，
+    收緊就會黏在一起。行高則要比 Latin 鬆。
+  */
+  :lang(zh) h1,
+  :lang(zh) h2,
+  :lang(zh) h3 {
+    letter-spacing: -0.005em;
+    line-height: 1.25;
+  }
+
+  /* 數字要對齊：頁碼、比例、匯出進度都是一欄一欄讀的 */
+  code,
+  kbd,
+  samp,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /*
+    預覽檯面。這是整個工具唯一的裝飾，而它有意義：
+    1080 畫布是逐 px 對齊 Canva 量出來的座標，底下鋪一層對齊網格
+    正好說明這件事，也讓縮放後的版型有個可以「靠」的參考線。
+  */
+  .bench {
+    background-image:
+      linear-gradient(to right, var(--bench-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--bench-line) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /*
+    分段控制項的「目前選到」必須一眼看得出來。shadcn 預設 pressed 與 hover
+    都是 bg-muted，兩個狀態疊在一起就分不出來了；這裡把選中的那一格抬到
+    secondary 檯面、字色補滿，並補一圈內描邊。
+  */
+  [data-slot="toggle-group-item"][aria-pressed="true"] {
+    background-color: var(--secondary);
+    color: var(--foreground);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

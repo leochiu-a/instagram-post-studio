@@ -43,3 +43,28 @@ test("預覽跟著欄寬縮放", async ({ page }) => {
     .poll(async () => (await page.evaluate(measure)).cardWidth)
     .toBeGreaterThan(narrow.cardWidth);
 });
+
+test("切到逐頁也不會把整頁撐長", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.getByRole("tab", { name: /逐頁/ }).click();
+  await expect(page.getByLabel("封面大標")).toBeVisible();
+
+  const layout = await page.evaluate(measure);
+
+  // ImagePicker 裡那個 sr-only 的 file input 是 position: absolute，
+  // 少了定位祖先就會逃出左欄的捲動容器、把 document 撐到兩倍高
+  expect(layout.pageScrolls, "逐頁的欄位再多，也是左欄自己捲").toBe(false);
+  expect(layout.columns[0].scrollable, "五頁的欄位一定超過一個視窗高").toBe(true);
+});
+
+test("內文欄位長出內容的高度，不出現自己的捲軸", async ({ page }) => {
+  await page.getByRole("tab", { name: /逐頁/ }).click();
+
+  const body = page.getByLabel("內文").first();
+  await body.fill(Array.from({ length: 20 }, (_, i) => `第 ${i + 1} 行`).join("\n"));
+
+  const fits = await body.evaluate(
+    (node: HTMLTextAreaElement) => node.scrollHeight <= node.clientHeight + 1,
+  );
+  expect(fits, "field-sizing: content 應該讓它跟著內容長高").toBe(true);
+});

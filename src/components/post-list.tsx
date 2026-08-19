@@ -1,25 +1,37 @@
 "use client";
 
+import { LayersIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SlideCard } from "./slide-card";
-import { Button } from "./ui";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Separator } from "@/components/ui/separator";
 import { usePostList } from "@/lib/post-store";
 import { CANVAS } from "@/lib/theme";
+import { useFitScale } from "@/lib/use-fit-scale";
 import type { Post } from "@/lib/types";
 
-/** 清單縮圖：直接縮放真正的版型，不另外做一套假的預覽 */
-const SCALE = 0.16;
-
+/** 卡片縮圖：直接縮放真正的版型，不另外做一套假的預覽 */
 function Thumbnail({ post }: { post: Post }) {
   const cover = post.slides[0];
+  // 一格再寬也不需要超過原尺寸的一半
+  const { ref, scale } = useFitScale(0.5, 0.22);
+
   return (
     <div
-      className="shrink-0 overflow-hidden rounded-lg bg-neutral-900 ring-1 ring-white/10"
-      style={{ width: CANVAS.width * SCALE, height: CANVAS.height * SCALE }}
+      ref={ref}
+      className="bg-muted ring-border group-hover:ring-muted-foreground/40 w-full overflow-hidden rounded-sm shadow-[0_1px_2px_rgb(0_0_0/0.4),0_10px_28px_-14px_rgb(0_0_0/0.7)] ring-1 transition-[--tw-ring-color] duration-100"
+      style={{ aspectRatio: `${CANVAS.width} / ${CANVAS.height}` }}
     >
       {cover && (
-        <div style={{ transform: `scale(${SCALE})`, transformOrigin: "top left" }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
           <SlideCard
             slide={cover}
             handle={post.handle}
@@ -37,40 +49,56 @@ export function PostList() {
   const router = useRouter();
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 p-6">
-      <header className="flex items-end justify-between gap-4 border-b border-white/10 pb-4">
-        <div>
-          <h1 className="text-lg font-semibold">IG Post Studio</h1>
-          <p className="text-xs text-neutral-400">1080×1350 · 深淺兩色版型</p>
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col p-6">
+      <header className="flex items-end justify-between gap-4 pb-5">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="text-xl font-semibold">IG Post Studio</h1>
+          <p className="text-muted-foreground font-mono text-xs tracking-wide tabular-nums">
+            1080 × 1350 · PNG / ZIP · DARK + LIGHT
+          </p>
         </div>
-        <Button variant="primary" onClick={() => router.push(`/post/${addPost()}`)}>
+        <Button size="lg" onClick={() => router.push(`/post/${addPost()}`)}>
           ＋ 新增貼文
         </Button>
       </header>
 
+      <Separator />
+
       {posts.length === 0 ? (
-        <p className="py-16 text-center text-sm text-neutral-400">
-          還沒有貼文，按右上角的「新增貼文」開始。
-        </p>
+        <Empty className="py-24">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <LayersIcon />
+            </EmptyMedia>
+            <EmptyTitle>還沒有貼文</EmptyTitle>
+            <EmptyDescription>按右上角的「新增貼文」開一份新的版型。</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-6 pt-6 sm:grid-cols-3 lg:grid-cols-4">
           {posts.map((post) => (
-            <li
-              key={post.id}
-              className="flex items-center gap-4 rounded-xl bg-neutral-900/60 p-3 ring-1 ring-white/10 transition hover:ring-white/30"
-            >
-              <Link href={`/post/${post.id}`} className="flex min-w-0 flex-1 items-center gap-4">
+            <li key={post.id} className="group relative flex flex-col">
+              <Link
+                href={`/post/${post.id}`}
+                className="focus-visible:ring-ring/50 flex flex-col gap-2.5 rounded-sm outline-none focus-visible:ring-3"
+              >
                 <Thumbnail post={post} />
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{post.title}</p>
-                  <p className="mt-1 text-xs text-neutral-400">
-                    {post.slides.length} 頁 · {post.theme === "dark" ? "深色" : "淺色"} ·{" "}
-                    {post.handle}
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium">{post.title}</p>
+                  <p className="text-muted-foreground truncate font-mono text-[0.7rem] tracking-wide tabular-nums">
+                    {String(post.slides.length).padStart(2, "0")}P ·{" "}
+                    {post.theme === "dark" ? "DARK" : "LIGHT"} · {post.handle}
                   </p>
                 </div>
               </Link>
-              <Button variant="danger" onClick={() => removePost(post.id)}>
-                刪除
+              <Button
+                variant="outline"
+                size="icon-sm"
+                aria-label="刪除"
+                className="bg-background/85 text-muted-foreground hover:text-destructive absolute size-8 md:size-6 top-1.5 right-1.5 backdrop-blur-sm transition-opacity duration-100 focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                onClick={() => removePost(post.id)}
+              >
+                <Trash2Icon />
               </Button>
             </li>
           ))}

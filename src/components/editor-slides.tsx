@@ -1,7 +1,24 @@
 "use client";
 
+import {
+  BanIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  PlusIcon,
+  RectangleHorizontalIcon,
+  SquareIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { ImagePicker } from "./image-picker";
-import { Button, Field, TextArea, TextInput } from "./ui";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { Field, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Item, ItemActions, ItemHeader, ItemTitle } from "@/components/ui/item";
+import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
 import { makeCtaSlide } from "@/lib/markdown";
 import { newId, type ImageShape, type Slide } from "@/lib/types";
 
@@ -11,10 +28,10 @@ const KIND_LABEL: Record<Slide["kind"], string> = {
   cta: "結尾 CTA",
 };
 
-const SHAPES: { value: ImageShape; label: string }[] = [
-  { value: "banner", label: "橫幅" },
-  { value: "square", label: "正方形" },
-  { value: "none", label: "不放圖" },
+const SHAPES: { value: ImageShape; label: string; icon: typeof SquareIcon }[] = [
+  { value: "banner", label: "橫幅", icon: RectangleHorizontalIcon },
+  { value: "square", label: "正方形", icon: SquareIcon },
+  { value: "none", label: "不放圖", icon: BanIcon },
 ];
 
 function ShapeField({
@@ -25,18 +42,22 @@ function ShapeField({
   onChange: (shape: ImageShape) => void;
 }) {
   return (
-    <Field label="圖片版位">
-      <div className="flex gap-2">
-        {SHAPES.map((shape) => (
-          <Button
-            key={shape.value}
-            onClick={() => onChange(shape.value)}
-            className={value === shape.value ? "ring-sky-500" : ""}
-          >
-            {shape.label}
-          </Button>
+    <Field>
+      <FieldTitle>圖片版位</FieldTitle>
+      <ToggleGroup
+        value={[value]}
+        onValueChange={([next]) => next && onChange(next as ImageShape)}
+        variant="outline"
+        size="sm"
+        spacing={0}
+      >
+        {SHAPES.map(({ value: shape, label, icon: Icon }) => (
+          <ToggleGroupItem key={shape} value={shape} aria-label={label}>
+            <Icon data-icon="inline-start" />
+            {label}
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
     </Field>
   );
 }
@@ -81,44 +102,74 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
   const hasCta = slides.some((slide) => slide.kind === "cta");
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2.5">
       {slides.map((slide, index) => (
-        <section
+        <Item
           key={slide.id}
+          render={<section />}
+          variant="outline"
           onFocus={() => onFocus(slide.id)}
-          className={`rounded-xl bg-neutral-900/60 p-3 ring-1 transition ${
-            activeId === slide.id ? "ring-sky-500/60" : "ring-white/10"
-          }`}
+          className={cn(
+            "flex-col items-stretch gap-3 p-3 transition-colors duration-100",
+            activeId === slide.id && "border-primary/50 bg-primary/[0.03]",
+          )}
         >
-          <header className="mb-3 flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-neutral-300">
-              {index + 1}. {KIND_LABEL[slide.kind]}
-              {slide.kind === "content" && slide.badge ? ` · ${slide.badge}` : ""}
-            </span>
-            <div className="flex gap-1">
-              <Button onClick={() => move(index, -1)} disabled={index === 0} aria-label="上移">
-                ↑
+          <ItemHeader className="gap-2">
+            <ItemTitle className="gap-2 font-normal">
+              <span className="text-muted-foreground font-mono text-xs tabular-nums">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="font-medium">{KIND_LABEL[slide.kind]}</span>
+              {slide.kind === "content" && slide.badge && (
+                <Badge variant="secondary" className="font-mono tabular-nums">
+                  {slide.badge}
+                </Badge>
+              )}
+            </ItemTitle>
+            <ItemActions className="gap-1">
+              <ButtonGroup>
+                <Button
+                  variant="outline"
+                  size="icon-xs"
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0}
+                  aria-label="上移"
+                >
+                  <ChevronUpIcon />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon-xs"
+                  onClick={() => move(index, 1)}
+                  disabled={index === slides.length - 1}
+                  aria-label="下移"
+                >
+                  <ChevronDownIcon />
+                </Button>
+              </ButtonGroup>
+              <Button variant="ghost" size="xs" onClick={() => addContent(index)}>
+                <PlusIcon data-icon="inline-start" />
+                內頁
               </Button>
               <Button
-                onClick={() => move(index, 1)}
-                disabled={index === slides.length - 1}
-                aria-label="下移"
+                variant="ghost"
+                size="icon-xs"
+                aria-label="刪除這一頁"
+                className="text-muted-foreground hover:text-destructive"
+                onClick={() => remove(slide.id)}
               >
-                ↓
+                <Trash2Icon />
               </Button>
-              <Button onClick={() => addContent(index)}>＋內頁</Button>
-              <Button variant="danger" onClick={() => remove(slide.id)}>
-                刪除
-              </Button>
-            </div>
-          </header>
+            </ItemActions>
+          </ItemHeader>
 
-          <div className="flex flex-col gap-3">
+          <FieldGroup className="gap-3">
             {slide.kind === "cover" && (
               <>
-                <Field label="封面大標">
-                  <TextArea
-                    rows={3}
+                <Field>
+                  <FieldLabel htmlFor={`${slide.id}-title`}>封面大標</FieldLabel>
+                  <Textarea
+                    id={`${slide.id}-title`}
                     value={slide.title}
                     onChange={(event) => patch(slide.id, { title: event.target.value })}
                   />
@@ -136,23 +187,29 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
 
             {slide.kind === "content" && (
               <>
-                <div className="grid grid-cols-[88px_1fr] gap-2">
-                  <Field label="頁碼">
-                    <TextInput
+                <div className="grid grid-cols-[88px_1fr] gap-3">
+                  <Field>
+                    <FieldLabel htmlFor={`${slide.id}-badge`}>頁碼</FieldLabel>
+                    <Input
+                      id={`${slide.id}-badge`}
+                      className="font-mono tabular-nums"
                       value={slide.badge}
                       onChange={(event) => patch(slide.id, { badge: event.target.value })}
                     />
                   </Field>
-                  <Field label="標題">
-                    <TextInput
+                  <Field>
+                    <FieldLabel htmlFor={`${slide.id}-heading`}>標題</FieldLabel>
+                    <Input
+                      id={`${slide.id}-heading`}
                       value={slide.heading}
                       onChange={(event) => patch(slide.id, { heading: event.target.value })}
                     />
                   </Field>
                 </div>
-                <Field label="內文">
-                  <TextArea
-                    rows={8}
+                <Field>
+                  <FieldLabel htmlFor={`${slide.id}-body`}>內文</FieldLabel>
+                  <Textarea
+                    id={`${slide.id}-body`}
                     value={slide.body}
                     onChange={(event) => patch(slide.id, { body: event.target.value })}
                   />
@@ -170,14 +227,18 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
 
             {slide.kind === "cta" && (
               <>
-                <Field label="小標">
-                  <TextInput
+                <Field>
+                  <FieldLabel htmlFor={`${slide.id}-subhead`}>小標</FieldLabel>
+                  <Input
+                    id={`${slide.id}-subhead`}
                     value={slide.subhead}
                     onChange={(event) => patch(slide.id, { subhead: event.target.value })}
                   />
                 </Field>
-                <Field label="大標">
-                  <TextInput
+                <Field>
+                  <FieldLabel htmlFor={`${slide.id}-headline`}>大標</FieldLabel>
+                  <Input
+                    id={`${slide.id}-headline`}
                     value={slide.headline}
                     onChange={(event) => patch(slide.id, { headline: event.target.value })}
                   />
@@ -186,11 +247,14 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
                   value={slide.imageUrl}
                   onChange={(imageUrl) => patch(slide.id, { imageUrl })}
                 />
-                <Field label="互動數字（讚 / 留言 / 分享 / 收藏）">
+                <Field>
+                  <FieldTitle>互動數字（讚 / 留言 / 分享 / 收藏）</FieldTitle>
                   <div className="grid grid-cols-4 gap-2">
                     {slide.stats.map((stat, i) => (
-                      <TextInput
+                      <Input
                         key={i}
+                        className="font-mono tabular-nums"
+                        aria-label={`互動數字 ${i + 1}`}
                         value={stat}
                         onChange={(event) => {
                           const stats = [...slide.stats] as typeof slide.stats;
@@ -203,14 +267,20 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
                 </Field>
               </>
             )}
-          </div>
-        </section>
+          </FieldGroup>
+        </Item>
       ))}
 
       <div className="flex gap-2 pb-2">
-        <Button onClick={() => addContent(slides.length - 1)}>＋ 新增內頁</Button>
+        <Button variant="outline" size="sm" onClick={() => addContent(slides.length - 1)}>
+          <PlusIcon data-icon="inline-start" />
+          新增內頁
+        </Button>
         {!hasCta && (
-          <Button onClick={() => onChange([...slides, makeCtaSlide()])}>＋ 結尾 CTA</Button>
+          <Button variant="outline" size="sm" onClick={() => onChange([...slides, makeCtaSlide()])}>
+            <PlusIcon data-icon="inline-start" />
+            結尾 CTA
+          </Button>
         )}
       </div>
     </div>

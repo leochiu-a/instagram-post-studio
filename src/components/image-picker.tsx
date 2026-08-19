@@ -1,7 +1,10 @@
 "use client";
 
+import { ImagePlusIcon, TriangleAlertIcon, XIcon } from "lucide-react";
 import { useId, useState } from "react";
-import { Button } from "./ui";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { fileToDataUrl } from "@/lib/export";
 
 interface ImagePickerProps {
@@ -26,32 +29,57 @@ export function ImagePicker({ value, onChange }: ImagePickerProps) {
   };
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium tracking-wide text-neutral-400 uppercase">圖片</span>
+    // relative 是必要的：底下那個 sr-only 的 file input 是 position: absolute，
+    // 沒有定位祖先的話它的 containing block 會是整份文件，
+    // 於是逃出左欄的捲動容器、把整頁撐長（右邊會多一條頁面 scrollbar）。
+    <Field className="relative" data-invalid={error ? true : undefined}>
+      <FieldLabel htmlFor={inputId}>圖片</FieldLabel>
       <div className="flex items-center gap-2">
         <input
           id={inputId}
           type="file"
           accept="image/*"
-          className="hidden"
+          className="sr-only"
           onChange={(event) => void pick(event.target.files?.[0])}
         />
-        <Button onClick={() => document.getElementById(inputId)?.click()}>選擇圖檔</Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => document.getElementById(inputId)?.click()}
+        >
+          <ImagePlusIcon data-icon="inline-start" />
+          選擇圖檔
+        </Button>
         {value && (
           <>
-            <img src={value} alt="" className="h-9 w-9 rounded object-cover ring-1 ring-white/10" />
-            <Button variant="danger" onClick={() => onChange("")}>
-              移除
+            <img src={value} alt="" className="ring-border size-8 rounded-sm object-cover ring-1" />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="移除圖片"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => onChange("")}
+            >
+              <XIcon />
             </Button>
           </>
         )}
       </div>
+
       {isRemote && (
-        <p className="text-xs text-amber-300/80">
-          遠端圖片可能因為 CORS 讓匯出失敗，建議改成上傳本機圖檔。
-        </p>
+        <Alert>
+          <TriangleAlertIcon />
+          <AlertDescription>
+            遠端圖片可能因為 CORS 讓匯出失敗，建議改成上傳本機圖檔。
+          </AlertDescription>
+        </Alert>
       )}
-      {error && <p className="text-xs text-red-300">{error}</p>}
-    </div>
+      {error && (
+        <Alert variant="destructive">
+          <TriangleAlertIcon />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </Field>
   );
 }
