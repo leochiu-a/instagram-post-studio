@@ -48,12 +48,25 @@ test("內文的程式碼渲染成原稿的淺色 chip，且不撐開行高", asy
     const line = span.parentElement as HTMLElement;
     const scale = card.getBoundingClientRect().width / 1080;
     const style = getComputedStyle(span);
+    // 字真正的墨水範圍，用來確認 chip 沒有切到「p」的下緣
+    const context = document.createElement("canvas").getContext("2d")!;
+    // 預覽是 transform 縮放的，getComputedStyle 拿到的仍是畫布座標的字級
+    context.font = `${style.fontSize} ${style.fontFamily}`;
+    const ink = context.measureText(span.textContent!);
+    const box = span.getBoundingClientRect();
+    const content = document.createRange();
+    content.selectNodeContents(span);
+    const baseline =
+      (content.getBoundingClientRect().top - box.top) / scale + ink.fontBoundingBoxAscent;
+
     return {
       background: style.backgroundColor,
       color: style.color,
       radius: style.borderRadius,
       display: style.display,
-      height: span.getBoundingClientRect().height / scale,
+      height: box.height / scale,
+      inkTopMargin: baseline - ink.actualBoundingBoxAscent,
+      inkBottomMargin: box.height / scale - (baseline + ink.actualBoundingBoxDescent),
       lineHeight: line.getBoundingClientRect().height / scale,
     };
   });
@@ -66,7 +79,10 @@ test("內文的程式碼渲染成原稿的淺色 chip，且不撐開行高", asy
   expect(chip!.display).toBe("inline-block");
   expect(chip!.lineHeight).toBeCloseTo(METRICS.body.fontSize * METRICS.body.lineHeight, 0);
   // chip 比行距矮，連續幾行的 chip 上下才不會黏成一整片
-  expect(chip!.height).toBeLessThan(chip!.lineHeight - 8);
+  expect(chip!.height).toBeLessThan(chip!.lineHeight - 5);
+  // 墨水上下都要被底色蓋住，「p」的下緣才不會看起來被切掉
+  expect(chip!.inkTopMargin).toBeGreaterThan(2);
+  expect(chip!.inkBottomMargin).toBeGreaterThan(2);
 });
 
 test("重新整理後內容還在", async ({ page }) => {

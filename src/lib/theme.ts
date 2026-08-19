@@ -91,10 +91,20 @@ const CODE_CHIP = { fill: "#d8e2e6", text: "#234b52" } as const;
 export const CODE_CHIP_RADIUS = 12;
 
 /**
- * chip 的高度。比內文行距（1.55em）矮一截，連續幾行的 chip 才不會上下相連，
- * 又不會把行框撐開。
+ * chip 的盒子。
+ *
+ * 字體的 em box 是不對稱的（40px 時 ascent 46、descent 12），而字真正的
+ * 墨水只佔 ascent 32 / descent 9。所以上下對稱的內距永遠會多出一截空白在
+ * 上面、下緣卻剛好貼著 descender —— 「p」「g」的下緣就像被切掉。
+ *
+ * 這裡直接對齊墨水：line-height 1em 把基線放在盒子頂端 37px（0.925em）處，
+ * 再用不對稱的上下內距把盒子撐到 1.325em。墨水上下各留一截空隙，盒子又比
+ * 內文行距（1.55em）矮，連續幾行的 chip 不會相連，行框也不會被撐開。
  */
-export const CODE_CHIP_HEIGHT = "1.2em";
+export const CODE_CHIP_BOX = {
+  lineHeight: "1em",
+  padding: "0.075em 0.22em 0.25em",
+} as const;
 
 export const PALETTES: Record<ThemeName, Palette> = {
   dark: {
