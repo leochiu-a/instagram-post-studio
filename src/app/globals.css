@@ -131,9 +131,20 @@
 }
 
 @layer base {
+  /*
+    scrollbar-width: none —— 捲軸一律不畫。這個工具的兩欄各自捲動，
+    兩條系統捲軸並排在中線兩側很吵，而且右欄會因此比左欄窄一截、
+    預覽跟著縮水。捲動行為本身沒動，只是不顯示。
+  */
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: none;
   }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
