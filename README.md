@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IG Post Studio
 
-## Getting Started
-
-First, run the development server:
+把 Canva 上的 Instagram 貼文版型搬進瀏覽器：貼一份 Markdown，就能匯出 1080×1350 的 PNG。
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm dev      # http://localhost:3000
+pnpm check    # oxfmt --check + oxlint + tsc --noEmit
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 版型來源
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+兩個 Canva 設計其實是同一套版型的深／淺配色，所有座標與字級都是從原稿量出來後寫進
+[`src/lib/theme.ts`](src/lib/theme.ts) 的 `METRICS`：
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 元素            | 規格                                                                            |
+| --------------- | ------------------------------------------------------------------------------- |
+| 畫布            | 1080×1350（4:5），左右安全邊界 71.12                                            |
+| 頁首            | `@handle`（左）+ 時間（右），30.67px，y=143.87 — **只有封面與結尾頁有**         |
+| 內頁頁碼 / 標題 | 同一條線上左右對齊，58.67px bold，y=108                                         |
+| 內文            | 40px / line-height 1.55 / letter-spacing -0.006em，x=73.04、寬 935.84、y=236.34 |
+| 封面大標        | 88px bold / line-height 1.5                                                     |
+| SWIPE 膠囊      | 395.92×124.93 @ (754.77, 1261.75)，刻意超出畫布只露一角                         |
+| 結尾頁          | 38.67 小標 + 78.67 大標 + `#234b52` 膠囊裡的四個互動 icon                       |
 
-## Learn More
+配色定義在同一支檔案的 `PALETTES`：
 
-To learn more about Next.js, take a look at the following resources:
+- **深色**：背景 135° 漸層 `#1d2a3a → #0c1320`、文字 `#ffffff`
+- **淺色**：背景 `#f8f7f4`、文字 `#2b2d42`、強調 `#8d99ae`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+> Canva 的深色頁把程式碼字設成 `#234b52`，在深底上幾乎看不見；這裡兩個配色都用 `#8d99ae`。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Markdown 語法
 
-## Deploy on Vercel
+| 寫法                       | 結果                           |
+| -------------------------- | ------------------------------ |
+| `# 標題`                   | 封面                           |
+| `## 標題`                  | 一張內頁，頁碼自動編號 01、02… |
+| `![](網址)`                | 該頁的圖片                     |
+| `- 項目`                   | 項目符號                       |
+| `**粗體**`、`` `程式碼` `` | 套用強調色                     |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+結尾 CTA 頁會自動補上。兩種編輯模式共用同一份頁面資料：Markdown 分頁按「套用到頁面」會
+**重建**所有頁面，逐頁模式則直接改單頁；「用目前頁面覆蓋草稿」可以把頁面倒回 Markdown。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 匯出
+
+用 [html-to-image](https://github.com/bubkoo/html-to-image) 直接把 DOM 畫成 PNG，
+所以版型元件永遠以 1080×1350 的真實尺寸渲染，預覽的縮放交給外層 `transform`。
+
+- 圖片請**上傳本機檔案**（會存成 data URL）。遠端網址會因為 CORS 汙染 canvas 而匯出失敗。
+- 瀏覽器要有真實使用者點擊才會存檔，程式化觸發的下載會被丟掉。
+
+## 工具鏈
+
+oxlint + oxfmt（取代 ESLint / Prettier），透過 husky + lint-staged 在 commit 前跑。

@@ -1,69 +1,188 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { EditorMarkdown } from "@/components/editor-markdown";
+import { EditorSlides } from "@/components/editor-slides";
+import { PreviewList } from "@/components/preview-list";
+import { Button, Field, TextInput } from "@/components/ui";
+import { downloadAllAsZip, downloadSlide, safeFileName } from "@/lib/export";
+import { parseMarkdown, renumber, SAMPLE, toMarkdown } from "@/lib/markdown";
+import type { Post, Slide, ThemeName } from "@/lib/types";
+
+const STORAGE_KEY = "ig-post-studio:v1";
+
+const INITIAL: Post = {
+  handle: "@leo.web.dev",
+  timestamp: "3 min ago",
+  theme: "dark",
+  slides: parseMarkdown(SAMPLE),
+};
+
+type Tab = "markdown" | "slides";
+
+export default function StudioPage() {
+  const [post, setPost] = useState<Post>(INITIAL);
+  const [draft, setDraft] = useState(SAMPLE);
+  const [tab, setTab] = useState<Tab>("markdown");
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [status, setStatus] = useState("");
+
+  // 讀回上次的內容。刻意放在 effect 裡，避免伺服器與瀏覽器渲染不一致。
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as { post: Post; draft: string };
+      // oxlint-disable-next-line react/set-state-in-effect -- localStorage 在 SSR 讀不到，只能掛載後還原
+      setPost(parsed.post);
+      setDraft(parsed.draft);
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ post, draft }));
+  }, [post, draft]);
+
+  const setSlides = useCallback((slides: Slide[]) => {
+    setPost((prev) => ({ ...prev, slides: renumber(slides) }));
+  }, []);
+
+  const nodesInOrder = useCallback(
+    () =>
+      post.slides
+        .map((slide) => document.querySelector<HTMLElement>(`[data-slide-id="${slide.id}"]`))
+        .filter((node): node is HTMLElement => node !== null),
+    [post.slides],
+  );
+
+  const baseName = useMemo(() => {
+    const cover = post.slides.find((slide) => slide.kind === "cover");
+    return safeFileName(cover?.kind === "cover" ? cover.title : "ig-post");
+  }, [post.slides]);
+
+  const exportOne = async (slide: Slide, index: number) => {
+    const node = document.querySelector<HTMLElement>(`[data-slide-id="${slide.id}"]`);
+    if (!node) return;
+    setStatus("匯出中…");
+    try {
+      await downloadSlide(node, `${baseName}-${String(index + 1).padStart(2, "0")}.png`);
+      setStatus("已下載");
+    } catch (error) {
+      setStatus(`匯出失敗：${(error as Error).message}`);
+    }
+  };
+
+  const exportAll = async () => {
+    const nodes = nodesInOrder();
+    if (nodes.length === 0) return;
+    setStatus("匯出中…");
+    try {
+      await downloadAllAsZip(nodes, baseName, (done, total) =>
+        setStatus(`匯出中… ${done}/${total}`),
+      );
+      setStatus(`已下載 ${nodes.length} 張`);
+    } catch (error) {
+      setStatus(`匯出失敗：${(error as Error).message}`);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="flex min-h-0 flex-1 flex-col lg:h-screen lg:flex-row">
+      <aside className="flex w-full flex-col gap-4 border-b border-white/10 p-5 lg:h-screen lg:w-[440px] lg:border-r lg:border-b-0">
+        <div>
+          <h1 className="text-lg font-semibold">IG Post Studio</h1>
+          <p className="text-xs text-neutral-400">1080×1350 · 深淺兩色版型</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="帳號">
+            <TextInput
+              value={post.handle}
+              onChange={(event) => setPost({ ...post, handle: event.target.value })}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </Field>
+          <Field label="時間">
+            <TextInput
+              value={post.timestamp}
+              onChange={(event) => setPost({ ...post, timestamp: event.target.value })}
+            />
+          </Field>
         </div>
-      </main>
-    </div>
+
+        <Field label="配色">
+          <div className="flex gap-2">
+            {(["dark", "light"] as ThemeName[]).map((theme) => (
+              <Button
+                key={theme}
+                onClick={() => setPost({ ...post, theme })}
+                className={post.theme === theme ? "ring-sky-500" : ""}
+              >
+                {theme === "dark" ? "深色" : "淺色"}
+              </Button>
+            ))}
+          </div>
+        </Field>
+
+        <div className="flex gap-1 rounded-lg bg-neutral-900 p-1 ring-1 ring-white/10">
+          {(
+            [
+              ["markdown", "Markdown"],
+              ["slides", `逐頁（${post.slides.length}）`],
+            ] as [Tab, string][]
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setTab(value)}
+              className={`flex-1 rounded px-3 py-1.5 text-sm font-medium transition ${
+                tab === value ? "bg-white/10 text-white" : "text-neutral-400 hover:text-neutral-200"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "markdown" ? (
+          <EditorMarkdown
+            value={draft}
+            onChange={setDraft}
+            onApply={() => {
+              setSlides(parseMarkdown(draft));
+              setTab("slides");
+            }}
+            onPullFromSlides={() => setDraft(toMarkdown(post.slides))}
+          />
+        ) : (
+          <EditorSlides
+            slides={post.slides}
+            onChange={setSlides}
+            activeId={activeId}
+            onFocus={setActiveId}
+          />
+        )}
+
+        <div className="flex items-center gap-3 border-t border-white/10 pt-3">
+          <Button variant="primary" onClick={() => void exportAll()}>
+            匯出全部（ZIP）
+          </Button>
+          <span className="text-xs text-neutral-400">{status}</span>
+        </div>
+      </aside>
+
+      <section className="min-h-0 flex-1 overflow-y-auto bg-neutral-900/40 p-6">
+        <PreviewList
+          slides={post.slides}
+          handle={post.handle}
+          timestamp={post.timestamp}
+          theme={post.theme}
+          activeId={activeId}
+          onSelect={setActiveId}
+          onDownload={(slide, index) => void exportOne(slide, index)}
+        />
+      </section>
+    </main>
   );
 }

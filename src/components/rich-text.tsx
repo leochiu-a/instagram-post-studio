@@ -1,0 +1,55 @@
+// oxlint-disable react/no-array-index-key -- 這裡的 index 對應固定的版型欄位與逐行渲染，順序不會變
+import type { Palette } from "@/lib/theme";
+
+const INLINE = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+
+/** 把一行文字裡的 **粗體** 與 `程式碼` 換成強調色的 span。 */
+function inline(text: string, palette: Palette) {
+  return text.split(INLINE).map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <span key={i} style={{ fontWeight: 700, color: palette.accent }}>
+          {part.slice(2, -2)}
+        </span>
+      );
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <span key={i} style={{ color: palette.accent }}>
+          {part.slice(1, -1)}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
+interface RichTextProps {
+  /** 原始內文。空行會保留成一整行的間距，"- " 開頭的行變成項目符號。 */
+  value: string;
+  palette: Palette;
+}
+
+/**
+ * 逐行渲染，而不是靠段落 margin —— Canva 的內文是單一文字框，
+ * 空行就是一個 line-height 的高度，這樣排出來的行位才會對得上。
+ */
+export function RichText({ value, palette }: RichTextProps) {
+  return (
+    <>
+      {value.split("\n").map((line, i) => {
+        const bullet = /^[-*]\s+(.*)$/.exec(line);
+        if (bullet) {
+          return (
+            <div key={i} style={{ display: "flex", gap: "0.5em", paddingLeft: "0.9em" }}>
+              <span aria-hidden>•</span>
+              <span style={{ flex: 1 }}>{inline(bullet[1], palette)}</span>
+            </div>
+          );
+        }
+        if (line.trim() === "") return <div key={i}>&nbsp;</div>;
+        return <div key={i}>{inline(line, palette)}</div>;
+      })}
+    </>
+  );
+}
