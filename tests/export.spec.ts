@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import JSZip from "jszip";
-import { CONTENT_IMAGE, COVER_IMAGE, CTA_IMAGE, SEED, SLIDES, STORAGE_KEY } from "./fixture";
+import { CONTENT_IMAGE, COVER_IMAGE, CTA_IMAGE, POST, SEED, SLIDES, STORAGE_KEY } from "./fixture";
 import { canvasRect, hexToRgb, isClose, pngSize, samplePixels } from "./helpers";
 import { CANVAS, METRICS, PALETTES } from "../src/lib/theme";
 
@@ -10,7 +10,7 @@ const SWIPE_TOP = METRICS.swipe.top;
 
 test.beforeEach(async ({ page }) => {
   // 刻意不用 addInitScript：它在每次載入（包含 reload）都會跑，會把剛剛的編輯蓋掉
-  await page.goto("/");
+  await page.goto(`/post/${POST.id}`);
   await page.evaluate(([key, seed]) => localStorage.setItem(key, seed), [
     STORAGE_KEY,
     SEED,
@@ -76,11 +76,8 @@ test("重新整理後內容還在", async ({ page }) => {
       page.evaluate((key) => {
         const raw = localStorage.getItem(key);
         if (!raw) return null;
-        const state = JSON.parse(raw) as {
-          posts: Record<string, { handle: string }>;
-          currentId: string;
-        };
-        return state.posts[state.currentId].handle;
+        const state = JSON.parse(raw) as { posts: Record<string, { handle: string }> };
+        return state.posts.t.handle;
       }, STORAGE_KEY),
     )
     .toBe("@changed.handle");

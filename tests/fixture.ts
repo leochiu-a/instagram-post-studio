@@ -73,4 +73,4 @@ export const POST: Post = {
 
 export const STORAGE_KEY = "ig-post-studio:posts:v1";
 
-export const SEED = JSON.stringify({ posts: { [POST.id]: POST }, currentId: POST.id });
+export const SEED = JSON.stringify({ posts: { [POST.id]: POST }, order: [POST.id] });
