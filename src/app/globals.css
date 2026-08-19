@@ -163,6 +163,21 @@
     line-height: 1.25;
   }
 
+  /*
+    Tailwind v4 起 button 的預設游標是 default（跟著原生 UA 樣式），
+    shadcn 也沒有自己加回來。可以按的東西就該長得像可以按，統一在這裡補，
+    省得每個元件各寫一次 cursor-pointer。
+
+    aria-disabled 要一起排除：base-ui 的 tab、toggle 是用它表示停用，
+    不是 :disabled。
+  */
+  button:not(:disabled, [aria-disabled="true"]),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+
   /* 數字要對齊：頁碼、比例、匯出進度都是一欄一欄讀的 */
   code,
   kbd,

@@ -33,7 +33,11 @@ export function ImagePicker({ value, onChange }: ImagePickerProps) {
     // 沒有定位祖先的話它的 containing block 會是整份文件，
     // 於是逃出左欄的捲動容器、把整頁撐長（右邊會多一條頁面 scrollbar）。
     <Field className="relative" data-invalid={error ? true : undefined}>
-      <FieldLabel htmlFor={inputId}>圖片</FieldLabel>
+      {/* 這個 label 綁的是 file input，點下去會開檔案視窗 ——
+          跟其他只是聚焦文字欄位的 label 不一樣，游標要跟著改 */}
+      <FieldLabel htmlFor={inputId} className="w-fit cursor-pointer">
+        圖片
+      </FieldLabel>
       <div className="flex items-center gap-2">
         <input
           id={inputId}
