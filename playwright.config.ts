@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 3211;
+/** 跟 next dev 同一個 port：同專案不允許第二個 dev server，本機就直接沿用已經開著的那個 */
+const PORT = 3210;
 
 export default defineConfig({
   testDir: "./tests",
