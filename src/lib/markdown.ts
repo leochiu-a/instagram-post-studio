@@ -4,6 +4,7 @@ const CTA_DEFAULTS = {
   subhead: "分享給你的朋友吧！",
   headline: "這篇貼文對你有幫助嗎？",
   stats: ["560", "204", "427", "318"] as [string, string, string, string],
+  imageUrl: "",
 };
 
 export const makeCtaSlide = (id = newId()): Slide => ({

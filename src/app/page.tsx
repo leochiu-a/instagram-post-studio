@@ -1,61 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { EditorMarkdown } from "@/components/editor-markdown";
 import { EditorSlides } from "@/components/editor-slides";
 import { PreviewList } from "@/components/preview-list";
 import { Button, Field, TextInput } from "@/components/ui";
 import { downloadAllAsZip, downloadSlide, safeFileName } from "@/lib/export";
-import { parseMarkdown, renumber, SAMPLE, toMarkdown } from "@/lib/markdown";
-import type { Post, Slide, ThemeName } from "@/lib/types";
-
-const STORAGE_KEY = "ig-post-studio:v1";
-
-const INITIAL: Post = {
-  handle: "@leo.web.dev",
-  timestamp: "3 min ago",
-  theme: "dark",
-  slides: parseMarkdown(SAMPLE),
-};
+import { parseMarkdown, toMarkdown } from "@/lib/markdown";
+import { usePostCollection } from "@/lib/post-store";
+import type { Slide, ThemeName } from "@/lib/types";
 
 type Tab = "markdown" | "slides";
 
 export default function StudioPage() {
-  const [post, setPost] = useState<Post>(INITIAL);
-  const [draft, setDraft] = useState(SAMPLE);
+  const { current: post, updateCurrent, setSlides } = usePostCollection();
   const [tab, setTab] = useState<Tab>("markdown");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  const draft = post.draft;
 
-  // 讀回上次的內容。刻意放在 effect 裡，避免伺服器與瀏覽器渲染不一致。
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
-    try {
-      const parsed = JSON.parse(saved) as { post: Post; draft: string };
-      // oxlint-disable-next-line react/set-state-in-effect -- localStorage 在 SSR 讀不到，只能掛載後還原
-      setPost(parsed.post);
-      setDraft(parsed.draft);
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ post, draft }));
-  }, [post, draft]);
-
-  const setSlides = useCallback((slides: Slide[]) => {
-    setPost((prev) => ({ ...prev, slides: renumber(slides) }));
-  }, []);
-
-  const nodesInOrder = useCallback(
-    () =>
-      post.slides
-        .map((slide) => document.querySelector<HTMLElement>(`[data-slide-id="${slide.id}"]`))
-        .filter((node): node is HTMLElement => node !== null),
-    [post.slides],
-  );
+  const nodesInOrder = () =>
+    post.slides
+      .map((slide) => document.querySelector<HTMLElement>(`[data-slide-id="${slide.id}"]`))
+      .filter((node): node is HTMLElement => node !== null);
 
   const baseName = useMemo(() => {
     const cover = post.slides.find((slide) => slide.kind === "cover");
@@ -100,13 +67,13 @@ export default function StudioPage() {
           <Field label="帳號">
             <TextInput
               value={post.handle}
-              onChange={(event) => setPost({ ...post, handle: event.target.value })}
+              onChange={(event) => updateCurrent({ handle: event.target.value })}
             />
           </Field>
           <Field label="時間">
             <TextInput
               value={post.timestamp}
-              onChange={(event) => setPost({ ...post, timestamp: event.target.value })}
+              onChange={(event) => updateCurrent({ timestamp: event.target.value })}
             />
           </Field>
         </div>
@@ -116,7 +83,7 @@ export default function StudioPage() {
             {(["dark", "light"] as ThemeName[]).map((theme) => (
               <Button
                 key={theme}
-                onClick={() => setPost({ ...post, theme })}
+                onClick={() => updateCurrent({ theme })}
                 className={post.theme === theme ? "ring-sky-500" : ""}
               >
                 {theme === "dark" ? "深色" : "淺色"}
@@ -148,12 +115,12 @@ export default function StudioPage() {
         {tab === "markdown" ? (
           <EditorMarkdown
             value={draft}
-            onChange={setDraft}
+            onChange={(value) => updateCurrent({ draft: value })}
             onApply={() => {
               setSlides(parseMarkdown(draft));
               setTab("slides");
             }}
-            onPullFromSlides={() => setDraft(toMarkdown(post.slides))}
+            onPullFromSlides={() => updateCurrent({ draft: toMarkdown(post.slides) })}
           />
         ) : (
           <EditorSlides

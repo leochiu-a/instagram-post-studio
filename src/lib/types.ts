@@ -1,6 +1,6 @@
 export type ThemeName = "dark" | "light";
 
-export type CoverImageShape = "banner" | "square" | "none";
+export type ImageShape = "banner" | "square" | "none";
 
 export type Slide =
   | {
@@ -8,7 +8,7 @@ export type Slide =
       kind: "cover";
       title: string;
       imageUrl: string;
-      imageShape: CoverImageShape;
+      imageShape: ImageShape;
     }
   | {
       id: string;
@@ -26,13 +26,19 @@ export type Slide =
       subhead: string;
       headline: string;
       stats: [string, string, string, string];
+      imageUrl: string;
     };
 
 export interface Post {
+  id: string;
+  /** 清單上顯示的名稱，也決定匯出的檔名 */
+  title: string;
   handle: string;
   timestamp: string;
   theme: ThemeName;
   slides: Slide[];
+  /** 這篇自己的 Markdown 草稿 */
+  draft: string;
 }
 
 let seq = 0;

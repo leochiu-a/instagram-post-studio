@@ -6,6 +6,29 @@ import type { Slide, ThemeName } from "@/lib/types";
 
 const { padding, contentWidth, contentLeft } = METRICS;
 
+/** 絕對定位的圖片版位，封面與結尾頁共用 */
+function ImageSlot({
+  url,
+  top,
+  left,
+  width,
+  height,
+}: {
+  url: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}) {
+  return (
+    <img
+      src={url}
+      alt=""
+      style={{ position: "absolute", top, left, width, height, objectFit: "cover" }}
+    />
+  );
+}
+
 function Header({
   handle,
   timestamp,
@@ -90,24 +113,15 @@ function CoverBody({
   return (
     <>
       {slide.imageUrl && slide.imageShape === "banner" && (
-        <img
-          src={slide.imageUrl}
-          alt=""
-          style={{ position: "absolute", ...banner, objectFit: "cover" }}
-        />
+        <ImageSlot url={slide.imageUrl} {...banner} />
       )}
       {slide.imageUrl && slide.imageShape === "square" && (
-        <img
-          src={slide.imageUrl}
-          alt=""
-          style={{
-            position: "absolute",
-            top: square.top,
-            left: square.left,
-            width: square.size,
-            height: square.size,
-            objectFit: "cover",
-          }}
+        <ImageSlot
+          url={slide.imageUrl}
+          top={square.top}
+          left={square.left}
+          width={square.size}
+          height={square.size}
         />
       )}
       <div
@@ -278,6 +292,7 @@ function CtaBody({ slide, palette }: { slide: Extract<Slide, { kind: "cta" }>; p
           }}
         />
       ))}
+      {slide.imageUrl && <ImageSlot url={slide.imageUrl} {...c.image} />}
       {slide.stats.map((stat, i) => (
         <div
           key={i}

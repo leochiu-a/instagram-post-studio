@@ -53,6 +53,8 @@ export const METRICS = {
     /** 四個 icon 的水平中心點 */
     columns: [285.7, 459.27, 623.46, 785.84],
     arrow: { top: 666.66, left: 93.38, width: 207.1, height: 51.96, rotation: 70.05 },
+    /** 原稿沒有這個欄位：擺在互動膠囊下方的空白帶，不會壓到大標與 icon */
+    image: { top: 1070, left: 71.12, width: 935.84, height: 200 },
   },
 } as const;
 

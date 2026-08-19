@@ -3,7 +3,7 @@
 import { ImagePicker } from "./image-picker";
 import { Button, Field, TextArea, TextInput } from "./ui";
 import { makeCtaSlide } from "@/lib/markdown";
-import { newId, type CoverImageShape, type Slide } from "@/lib/types";
+import { newId, type ImageShape, type Slide } from "@/lib/types";
 
 const KIND_LABEL: Record<Slide["kind"], string> = {
   cover: "封面",
@@ -11,7 +11,7 @@ const KIND_LABEL: Record<Slide["kind"], string> = {
   cta: "結尾 CTA",
 };
 
-const SHAPES: { value: CoverImageShape; label: string }[] = [
+const SHAPES: { value: ImageShape; label: string }[] = [
   { value: "banner", label: "橫幅" },
   { value: "square", label: "正方形" },
   { value: "none", label: "不放圖" },
@@ -162,6 +162,10 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
                     onChange={(event) => patch(slide.id, { headline: event.target.value })}
                   />
                 </Field>
+                <ImagePicker
+                  value={slide.imageUrl}
+                  onChange={(imageUrl) => patch(slide.id, { imageUrl })}
+                />
                 <Field label="互動數字（讚 / 留言 / 分享 / 收藏）">
                   <div className="grid grid-cols-4 gap-2">
                     {slide.stats.map((stat, i) => (
