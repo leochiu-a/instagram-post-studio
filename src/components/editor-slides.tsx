@@ -81,7 +81,7 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
   const hasCta = slides.some((slide) => slide.kind === "cta");
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
+    <div className="flex flex-col gap-3">
       {slides.map((slide, index) => (
         <section
           key={slide.id}
