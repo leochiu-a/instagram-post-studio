@@ -86,6 +86,7 @@ test("內文的程式碼渲染成原稿的淺色 chip，且不撐開行高", asy
 });
 
 test("重新整理後內容還在", async ({ page }) => {
+  await page.getByRole("button", { name: "設定" }).click();
   await page.getByLabel("帳號").fill("@changed.handle");
   await expect(page.locator('[data-slide-id="t1"]')).toContainText("@changed.handle");
 

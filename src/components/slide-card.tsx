@@ -352,17 +352,22 @@ interface SlideCardProps {
   handle: string;
   timestamp: string;
   theme: ThemeName;
+  /**
+   * 縮圖用。匯出是靠 data-slide-id 找節點的（querySelector 只會拿第一個），
+   * 同一張同時出現在預覽欄與縮圖列時，不標這個就會匯出到那張幾十 px 的縮圖。
+   */
+  decorative?: boolean;
 }
 
 /**
  * 一張貼文頁。永遠以 1080×1350 的真實尺寸渲染，
  * 縮放交給外層的 transform 處理，這樣匯出時才會逐 px 對得上 Canva。
  */
-export function SlideCard({ slide, handle, timestamp, theme }: SlideCardProps) {
+export function SlideCard({ slide, handle, timestamp, theme, decorative }: SlideCardProps) {
   const palette = PALETTES[theme];
   return (
     <div
-      data-slide-id={slide.id}
+      data-slide-id={decorative ? undefined : slide.id}
       style={{
         position: "relative",
         width: CANVAS.width,

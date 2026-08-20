@@ -20,13 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { makeCtaSlide } from "@/lib/markdown";
-import { newId, type ImageShape, type Slide } from "@/lib/types";
-
-const KIND_LABEL: Record<Slide["kind"], string> = {
-  cover: "封面",
-  content: "內頁",
-  cta: "結尾 CTA",
-};
+import { KIND_LABEL, newId, type ImageShape, type Slide } from "@/lib/types";
 
 const SHAPES: { value: ImageShape; label: string; icon: typeof SquareIcon }[] = [
   { value: "banner", label: "橫幅", icon: RectangleHorizontalIcon },
@@ -47,9 +41,7 @@ function ShapeField({
       <ToggleGroup
         value={[value]}
         onValueChange={([next]) => next && onChange(next as ImageShape)}
-        variant="outline"
-        size="sm"
-        spacing={0}
+        variant="default"
       >
         {SHAPES.map(({ value: shape, label, icon: Icon }) => (
           <ToggleGroupItem key={shape} value={shape} aria-label={label}>
@@ -102,16 +94,22 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
   const hasCta = slides.some((slide) => slide.kind === "cta");
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex shrink-0 flex-col gap-3">
       {slides.map((slide, index) => (
         <Item
           key={slide.id}
           render={<section />}
-          variant="outline"
+          variant="muted"
           onFocus={() => onFocus(slide.id)}
           className={cn(
-            "flex-col items-stretch gap-3 p-3 transition-colors duration-100",
-            activeId === slide.id && "border-primary/50 bg-primary/[0.03]",
+            /*
+              flex-nowrap 是必要的：Item 底層是 flex-wrap，改成 flex-col 之後
+              「換行」的意思就變成「往右邊換一欄」—— 面板是高度受限的 flex 容器，
+              卡片一被壓扁就會把欄位整排推到面板外面去。
+            */
+            "flex-col flex-nowrap items-stretch gap-4 rounded-2xl p-4 transition-colors duration-100",
+            // 選取態一律走 --ring：全站唯一用彩色的地方，跟預覽欄的選中框是同一個訊號
+            activeId === slide.id && "border-ring/60 bg-ring/[0.04]",
           )}
         >
           <ItemHeader className="gap-2">
@@ -129,7 +127,7 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
             <ItemActions className="gap-1">
               <ButtonGroup>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon-xs"
                   onClick={() => move(index, -1)}
                   disabled={index === 0}
@@ -138,7 +136,7 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
                   <ChevronUpIcon />
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon-xs"
                   onClick={() => move(index, 1)}
                   disabled={index === slides.length - 1}
@@ -272,12 +270,16 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
       ))}
 
       <div className="flex gap-2 pb-2">
-        <Button variant="outline" size="sm" onClick={() => addContent(slides.length - 1)}>
+        <Button variant="secondary" size="sm" onClick={() => addContent(slides.length - 1)}>
           <PlusIcon data-icon="inline-start" />
           新增內頁
         </Button>
         {!hasCta && (
-          <Button variant="outline" size="sm" onClick={() => onChange([...slides, makeCtaSlide()])}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onChange([...slides, makeCtaSlide()])}
+          >
             <PlusIcon data-icon="inline-start" />
             結尾 CTA
           </Button>

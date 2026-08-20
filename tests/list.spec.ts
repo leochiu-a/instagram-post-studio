@@ -16,16 +16,16 @@ test("清單列出貼文，點進去才是編輯器", async ({ page }) => {
   await expect(page.getByLabel("貼文名稱")).toHaveValue(POST.title);
   await expect(page.locator(`[data-slide-id="${POST.slides[0].id}"]`)).toBeVisible();
 
-  await page.getByRole("link", { name: "← 貼文清單" }).click();
+  await page.getByRole("link", { name: "貼文清單" }).click();
   await expect(page).toHaveURL("/");
 });
 
 test("新增的貼文會進到清單，改名字清單也跟著變", async ({ page }) => {
-  await page.getByRole("button", { name: "＋ 新增貼文" }).click();
+  await page.getByRole("button", { name: "新增貼文" }).click();
   await expect(page).toHaveURL(/\/post\/.+/);
 
   await page.getByLabel("貼文名稱").fill("第二篇");
-  await page.getByRole("link", { name: "← 貼文清單" }).click();
+  await page.getByRole("link", { name: "貼文清單" }).click();
 
   const titles = page.getByRole("list").getByRole("link");
   await expect(titles).toHaveCount(2);

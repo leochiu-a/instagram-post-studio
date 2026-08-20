@@ -49,3 +49,10 @@ let seq = 0;
  * 都會各跑一次 parseMarkdown，隨機 id 會造成 hydration mismatch。
  */
 export const newId = () => `n${++seq}`;
+
+/** 頁面類型的中文名稱。頂列的讀數與逐頁編輯器共用，不要各寫一份 */
+export const KIND_LABEL: Record<Slide["kind"], string> = {
+  cover: "封面",
+  content: "內頁",
+  cta: "結尾 CTA",
+};
