@@ -61,6 +61,7 @@ export const SLIDES: Slide[] = [
   },
 ];
 
+/** 種進資料庫時 id 會被換成這個 test 專屬的 uuid（見 tests/db.ts 的 seed） */
 export const POST: Post = {
   id: "t",
   title: "版型驗證",
@@ -70,7 +71,3 @@ export const POST: Post = {
   slides: SLIDES,
   draft: "",
 };
-
-export const STORAGE_KEY = "ig-post-studio:posts:v1";
-
-export const SEED = JSON.stringify({ posts: { [POST.id]: POST }, order: [POST.id] });

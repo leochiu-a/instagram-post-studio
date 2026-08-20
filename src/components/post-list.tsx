@@ -7,12 +7,15 @@ import { SlideCard } from "./slide-card";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { usePostList } from "@/lib/post-store";
+import { Spinner } from "@/components/ui/spinner";
+import { SAMPLE } from "@/lib/markdown";
+import { useHydrated, usePostList } from "@/lib/post-store";
 import { CANVAS } from "@/lib/theme";
 import { useFitScale } from "@/lib/use-fit-scale";
 import type { Post } from "@/lib/types";
@@ -46,7 +49,9 @@ function Cover({ post }: { post: Post }) {
 
 export function PostList() {
   const { posts, addPost, removePost } = usePostList();
+  const hydrated = useHydrated();
   const router = useRouter();
+  const open = (id: string) => router.push(`/post/${id}`);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -58,13 +63,23 @@ export function PostList() {
             1080×1350 · PNG / ZIP
           </p>
         </div>
-        <Button size="sm" className="shrink-0" onClick={() => router.push(`/post/${addPost()}`)}>
+        <Button size="sm" className="shrink-0" onClick={() => open(addPost())}>
           <PlusIcon data-icon="inline-start" />
           新增貼文
         </Button>
       </header>
 
-      {posts.length === 0 ? (
+      {!hydrated ? (
+        /* 貼文在 Supabase，第一次讀完之前不能顯示「還沒有貼文」—— 那是誤報 */
+        <Empty className="flex-1 py-24">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Spinner />
+            </EmptyMedia>
+            <EmptyTitle>讀取貼文…</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
+      ) : posts.length === 0 ? (
         <Empty className="flex-1 py-24">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -73,6 +88,15 @@ export function PostList() {
             <EmptyTitle>還沒有貼文</EmptyTitle>
             <EmptyDescription>按右上角的「新增貼文」開一份新的版型。</EmptyDescription>
           </EmptyHeader>
+          <EmptyContent>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => open(addPost("Vite+ 前端工具鏈全解析", SAMPLE))}
+            >
+              載入範例貼文
+            </Button>
+          </EmptyContent>
         </Empty>
       ) : (
         /*

@@ -5,26 +5,37 @@ import { useId, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { fileToDataUrl } from "@/lib/export";
+import { Spinner } from "@/components/ui/spinner";
+import { isManagedImage, uploadImage } from "@/lib/image-upload";
 
 interface ImagePickerProps {
+  postId: string;
   value: string;
   onChange: (value: string) => void;
 }
 
-/** 上傳的圖片會存成 data URL，遠端網址則會提醒可能因 CORS 匯不出來。 */
-export function ImagePicker({ value, onChange }: ImagePickerProps) {
+/**
+ * 選到的圖直接上傳到 Supabase Storage，欄位存的是公開網址。
+ * 之前存 data URL 是因為沒有後端，但那會把整張圖塞進貼文的 JSON 裡 ——
+ * 一篇多圖的貼文光是自己就好幾 MB。
+ */
+export function ImagePicker({ postId, value, onChange }: ImagePickerProps) {
   const inputId = useId();
   const [error, setError] = useState("");
-  const isRemote = /^https?:/.test(value);
+  const [uploading, setUploading] = useState(false);
+  /** 只有不是我們 bucket 的外部網址才要擔心 CORS */
+  const isForeign = /^https?:/.test(value) && !isManagedImage(value);
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
+    setUploading(true);
+    setError("");
     try {
-      onChange(await fileToDataUrl(file));
-      setError("");
-    } catch {
-      setError("讀取圖檔失敗，換一張試試。");
+      onChange(await uploadImage(file, postId));
+    } catch (cause) {
+      setError((cause as Error).message || "上傳失敗，換一張試試。");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -49,10 +60,15 @@ export function ImagePicker({ value, onChange }: ImagePickerProps) {
         <Button
           variant="secondary"
           size="sm"
+          disabled={uploading}
           onClick={() => document.getElementById(inputId)?.click()}
         >
-          <ImagePlusIcon data-icon="inline-start" />
-          選擇圖檔
+          {uploading ? (
+            <Spinner data-icon="inline-start" />
+          ) : (
+            <ImagePlusIcon data-icon="inline-start" />
+          )}
+          {uploading ? "上傳中…" : "選擇圖檔"}
         </Button>
         {value && (
           <>
@@ -70,11 +86,11 @@ export function ImagePicker({ value, onChange }: ImagePickerProps) {
         )}
       </div>
 
-      {isRemote && (
+      {isForeign && (
         <Alert>
           <TriangleAlertIcon />
           <AlertDescription>
-            遠端圖片可能因為 CORS 讓匯出失敗，建議改成上傳本機圖檔。
+            外部網址的圖片可能因為 CORS 讓匯出失敗，建議改成上傳本機圖檔。
           </AlertDescription>
         </Alert>
       )}

@@ -55,13 +55,15 @@ function ShapeField({
 }
 
 interface EditorSlidesProps {
+  /** 上傳的圖以貼文 id 分資料夾，所以圖片欄位要知道自己屬於哪一篇 */
+  postId: string;
   slides: Slide[];
   onChange: (slides: Slide[]) => void;
   activeId: string | null;
   onFocus: (id: string) => void;
 }
 
-export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlidesProps) {
+export function EditorSlides({ postId, slides, onChange, activeId, onFocus }: EditorSlidesProps) {
   const patch = (id: string, changes: Partial<Slide>) =>
     onChange(
       slides.map((slide) => (slide.id === id ? ({ ...slide, ...changes } as Slide) : slide)),
@@ -177,6 +179,7 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
                   onChange={(imageShape) => patch(slide.id, { imageShape })}
                 />
                 <ImagePicker
+                  postId={postId}
                   value={slide.imageUrl}
                   onChange={(imageUrl) => patch(slide.id, { imageUrl })}
                 />
@@ -217,6 +220,7 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
                   onChange={(imageShape) => patch(slide.id, { imageShape })}
                 />
                 <ImagePicker
+                  postId={postId}
                   value={slide.imageUrl}
                   onChange={(imageUrl) => patch(slide.id, { imageUrl })}
                 />
@@ -242,6 +246,7 @@ export function EditorSlides({ slides, onChange, activeId, onFocus }: EditorSlid
                   />
                 </Field>
                 <ImagePicker
+                  postId={postId}
                   value={slide.imageUrl}
                   onChange={(imageUrl) => patch(slide.id, { imageUrl })}
                 />

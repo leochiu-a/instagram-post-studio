@@ -1,5 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
-import { POST, SEED, STORAGE_KEY } from "./fixture";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./db";
+import { POST } from "./fixture";
 
 /** 量各欄的寬度、捲動範圍，以及第一張預覽實際被畫成多大 */
 const measure = () =>
@@ -39,14 +40,10 @@ const settle = (page: Page) =>
     () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
   );
 
-test.beforeEach(async ({ page }) => {
-  await page.goto(`/post/${POST.id}`);
-  await page.evaluate(([key, seed]) => localStorage.setItem(key, seed), [
-    STORAGE_KEY,
-    SEED,
-  ] as const);
-  await page.reload();
-  await expect(page.locator(`[data-slide-id="${POST.slides[0].id}"]`)).toBeVisible();
+test.beforeEach(async ({ page, app }) => {
+  const post = await app.seed();
+  await page.goto(`/post/${post.id}`);
+  await expect(page.locator(`[data-slide-id="${post.slides[0].id}"]`)).toBeVisible();
 });
 
 test("桌機版是 rail + 固定寬面板 + 吃滿剩餘空間的畫布區，頁面本身不捲動", async ({ page }) => {

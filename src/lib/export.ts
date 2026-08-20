@@ -49,15 +49,3 @@ export async function downloadAllAsZip(
 export function safeFileName(input: string) {
   return (input.trim() || "ig-post").replaceAll(/[\\/:*?"<>|]+/g, "-").slice(0, 60);
 }
-
-/** 本機圖檔轉 data URL —— 遠端圖片會因為 CORS 讓 canvas 匯出失敗。 */
-export function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(String(reader.result)), { once: true });
-    reader.addEventListener("error", () => reject(reader.error ?? new Error("讀取圖檔失敗")), {
-      once: true,
-    });
-    reader.readAsDataURL(file);
-  });
-}

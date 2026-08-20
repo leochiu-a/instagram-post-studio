@@ -112,7 +112,7 @@ export function PostEditor({ postId }: { postId: string }) {
   };
 
   if (!post) {
-    // 還沒還原 localStorage 之前不能斷定貼文不存在，先什麼都不畫
+    // 還沒從 Supabase 讀完之前不能斷定貼文不存在，先什麼都不畫
     if (!hydrated) return null;
     return (
       <Empty className="flex-1">
@@ -300,6 +300,7 @@ export function PostEditor({ postId }: { postId: string }) {
                 <>
                   <PanelLabel>逐頁 · {String(post.slides.length).padStart(2, "0")}</PanelLabel>
                   <EditorSlides
+                    postId={postId}
                     slides={post.slides}
                     onChange={setSlides}
                     activeId={activeId}

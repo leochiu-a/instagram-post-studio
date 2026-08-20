@@ -1,21 +1,19 @@
 import { readFile } from "node:fs/promises";
-import { expect, test } from "@playwright/test";
 import JSZip from "jszip";
-import { CONTENT_IMAGE, COVER_IMAGE, CTA_IMAGE, POST, SEED, SLIDES, STORAGE_KEY } from "./fixture";
+import { expect, test } from "./db";
+import { CONTENT_IMAGE, COVER_IMAGE, CTA_IMAGE, SLIDES } from "./fixture";
 import { canvasRect, hexToRgb, isClose, pngSize, samplePixels } from "./helpers";
 import { CANVAS, METRICS, PALETTES } from "../src/lib/theme";
 
 /** SWIPE 膠囊的上緣：任何內容都不該越過這條線 */
 const SWIPE_TOP = METRICS.swipe.top;
 
-test.beforeEach(async ({ page }) => {
-  // 刻意不用 addInitScript：它在每次載入（包含 reload）都會跑，會把剛剛的編輯蓋掉
-  await page.goto(`/post/${POST.id}`);
-  await page.evaluate(([key, seed]) => localStorage.setItem(key, seed), [
-    STORAGE_KEY,
-    SEED,
-  ] as const);
-  await page.reload();
+/** 每個 test 用自己的貼文，才能跟其他 test 併行跑而不互相干擾 */
+let postId = "";
+
+test.beforeEach(async ({ page, app }) => {
+  postId = (await app.seed()).id;
+  await page.goto(`/post/${postId}`);
   await expect(page.locator(`[data-slide-id="${SLIDES[0].id}"]`)).toBeVisible();
 });
 
@@ -85,22 +83,13 @@ test("內文的程式碼渲染成原稿的淺色 chip，且不撐開行高", asy
   expect(chip!.inkBottomMargin).toBeGreaterThan(2);
 });
 
-test("重新整理後內容還在", async ({ page }) => {
+test("重新整理後內容還在", async ({ page, app }) => {
   await page.getByRole("button", { name: "設定" }).click();
   await page.getByLabel("帳號").fill("@changed.handle");
   await expect(page.locator('[data-slide-id="t1"]')).toContainText("@changed.handle");
 
-  // 等寫入真的落地再重新整理 —— DOM 更新到 effect 寫入 storage 之間有一小段空窗
-  await expect
-    .poll(() =>
-      page.evaluate((key) => {
-        const raw = localStorage.getItem(key);
-        if (!raw) return null;
-        const state = JSON.parse(raw) as { posts: Record<string, { handle: string }> };
-        return state.posts.t.handle;
-      }, STORAGE_KEY),
-    )
-    .toBe("@changed.handle");
+  // 等寫入真的落地再重新整理 —— 送出是 debounce 的，DOM 更新完還沒進資料庫
+  await expect.poll(() => app.read(postId).then((row) => row?.handle)).toBe("@changed.handle");
 
   await page.reload();
   await expect(page.locator('[data-slide-id="t1"]')).toContainText("@changed.handle");
