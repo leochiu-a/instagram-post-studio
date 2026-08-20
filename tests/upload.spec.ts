@@ -33,6 +33,13 @@ test("上傳的圖進 Storage，公開網址匯得出來", async ({ page, app })
     .poll(() => app.read(post.id).then((row) => row?.slides[0]?.imageUrl))
     .toContain("/storage/v1/object/public/post-images/");
 
+  // 上傳的是 PNG，Storage 裡應該是轉檔後的 WebP
+  const imageUrl = await app.read(post.id).then((row) => row?.slides[0]?.imageUrl ?? "");
+  expect(imageUrl.endsWith(".webp"), `副檔名要是 .webp，實際是 ${imageUrl}`).toBe(true);
+
+  const head = await page.request.fetch(imageUrl, { method: "HEAD" });
+  expect(head.headers()["content-type"]).toBe("image/webp");
+
   // 外部網址的 CORS 警告不該出現 —— 自己 bucket 的圖是安全的
   await expect(page.getByText("外部網址的圖片可能因為 CORS")).toBeHidden();
 
