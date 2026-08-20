@@ -1,30 +1,25 @@
 import { saveAs } from "file-saver";
-import { toBlob } from "html-to-image";
+import { domToBlob } from "modern-screenshot";
 import { CANVAS } from "./theme";
 
+/**
+ * scale 1 代表輸出就是 1080×1350 的原尺寸 —— 版型元件本來就以真實尺寸渲染，
+ * 預覽的縮放是外層 transform 的事，不該影響匯出。
+ */
 const PNG_OPTIONS = {
   width: CANVAS.width,
   height: CANVAS.height,
-  pixelRatio: 1,
-  cacheBust: true,
+  scale: 1,
+  type: "image/png",
 } as const;
 
-async function render(node: HTMLElement): Promise<Blob> {
-  const blob = await toBlob(node, PNG_OPTIONS);
-  if (!blob) throw new Error("PNG 產生失敗");
-  return blob;
-}
-
 /**
- * html-to-image 第一次呼叫時字體與圖片常常還沒進快取，
- * 匯出前先空跑一次，後續每張圖才會完整。
+ * modern-screenshot 會等媒體載入完才畫（預設 30 秒 timeout），字體也是它自己
+ * 內嵌的，所以不需要像 html-to-image 那樣先用低解析度空跑一輪暖機。
  */
-export async function warmUp(node: HTMLElement) {
-  await toBlob(node, { ...PNG_OPTIONS, pixelRatio: 0.1 }).catch(() => null);
-}
+const render = (node: HTMLElement) => domToBlob(node, PNG_OPTIONS);
 
 export async function downloadSlide(node: HTMLElement, filename: string) {
-  await warmUp(node);
   saveAs(await render(node), filename);
 }
 
@@ -36,7 +31,6 @@ export async function downloadAllAsZip(
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
 
-  if (nodes[0]) await warmUp(nodes[0]);
   for (const [i, node] of nodes.entries()) {
     zip.file(`${String(i + 1).padStart(2, "0")}.png`, await render(node));
     onProgress?.(i + 1, nodes.length);

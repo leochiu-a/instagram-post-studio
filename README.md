@@ -77,7 +77,7 @@ supabase status     # 再看一次 API URL 與 anon key
 
 ## 匯出
 
-用 [html-to-image](https://github.com/bubkoo/html-to-image) 直接把 DOM 畫成 PNG，
+用 [modern-screenshot](https://github.com/qq15725/modern-screenshot) 直接把 DOM 畫成 PNG，
 所以版型元件永遠以 1080×1350 的真實尺寸渲染，預覽的縮放交給外層 `transform`。
 
 - 圖片請**上傳本機檔案**，會進 `post-images` bucket，欄位存的是公開網址。
@@ -99,7 +99,7 @@ supabase status     # 再看一次 API URL 與 anon key
 - 程式碼 chip 的底色、文字色、圓角正確，且沒有撐開行高
 - 編輯後重新整理，內容還在
 - 匯出的 ZIP 有五張 1080×1350 的 PNG，並直接對 PNG **取樣像素**確認 chip 與圖片
-  真的被畫進去了 —— 光看預覽的 DOM 不足以證明 html-to-image 有正確處理
+  真的被畫進去了 —— 光看預覽的 DOM 不足以證明 modern-screenshot 有正確處理
 
 取樣座標是從 DOM 量出來後換算成畫布座標，不是寫死的數字，版型調動時不需要跟著改。
 
