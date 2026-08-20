@@ -1,7 +1,8 @@
 "use client";
 
+import { PointerActivationConstraints, PointerSensor } from "@dnd-kit/dom";
 import { move } from "@dnd-kit/helpers";
-import { DragDropProvider } from "@dnd-kit/react";
+import { DragDropProvider, KeyboardSensor } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
 import { LayersIcon } from "lucide-react";
 import { SlideCard } from "./slide-card";
@@ -13,6 +14,22 @@ import type { Slide, ThemeName } from "@/lib/types";
 const THUMB_WIDTH = 52;
 
 const THUMB_SCALE = THUMB_WIDTH / CANVAS.width;
+
+/**
+ * 整張縮圖就是拖曳把手，而 dnd-kit 對「按在把手上的滑鼠」預設不設任何門檻 ——
+ * pointerdown 當下就進入拖曳，接著 pointerup 被它 preventDefault 吃掉，
+ * click 因此永遠不會發生（縮圖點了沒反應就是這個原因）。
+ *
+ * 改成只用位移門檻：原地點一下不算拖曳，click 正常送出；移動超過 5px 才開始拖，
+ * 也不像預設的 Delay(200ms) 那樣「按下去馬上拖」會被判定成不是拖曳。
+ * sensors 是整組覆寫，所以鍵盤排序要自己接回來。
+ */
+const SENSORS = [
+  PointerSensor.configure({
+    activationConstraints: [new PointerActivationConstraints.Distance({ value: 5 })],
+  }),
+  KeyboardSensor,
+];
 
 interface ThumbProps {
   slide: Slide;
@@ -31,8 +48,6 @@ function Thumb({ slide, index, active, handle, timestamp, theme, onSelect }: Thu
     <li
       /*
         ref 與 handleRef 指到同一個元素：整張縮圖就是拖曳把手。
-        沒登記 handle 的話，dnd-kit 對滑鼠會套 Delay(200ms, tolerance 10px)
-        —— 按下去馬上移動超過 10px 就被判定成「不是拖曳」而取消。
         （ref 回傳值要吞掉：React 19 會把 ref callback 的回傳值當成 cleanup）
       */
       ref={(element) => {
@@ -104,6 +119,7 @@ export function SlideFilmstrip({
       </span>
 
       <DragDropProvider
+        sensors={SENSORS}
         /*
           用官方的 move 而不是自己 splice：dnd-kit 在拖曳過程中就已經把
           目標位置算好了（縮圖會即時讓位），事件裡的 index 是那個結果。

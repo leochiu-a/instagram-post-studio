@@ -172,3 +172,29 @@ test("頂列讀數跟著選取改變，快捷列選中才出現", async ({ page 
   await expect(readout).toHaveText("01 / 05 · 封面 · 1080×1350");
   await expect(quickBar).toHaveCSS("opacity", "1");
 });
+
+test("點縮圖會選取那一張，並把預覽捲到它", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+
+  /*
+    用真的滑鼠點擊而不是 dispatchEvent —— 這一條要擋的正是「pointer 事件被
+    dnd-kit 吃掉、click 根本沒發生」：縮圖整張是拖曳把手，沒設位移門檻的話
+    pointerdown 當下就進入拖曳，pointerup 被 preventDefault，選取與捲動都不會發生。
+  */
+  await page.getByLabel("第 5 張縮圖").click();
+
+  await expect(page.getByText(/1080×1350/)).toHaveText("05 / 05 · 結尾 CTA · 1080×1350");
+
+  // 捲動是 smooth 的，量最終停在哪：那一張要落在畫布區的正中央
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const bench = document.querySelector(".bench")!.getBoundingClientRect();
+        const slide = [...document.querySelectorAll("[data-preview-slide]")]
+          .at(-1)!
+          .getBoundingClientRect();
+        return Math.round(slide.top + slide.height / 2 - (bench.top + bench.height / 2));
+      }),
+    )
+    .toBeLessThanOrEqual(2);
+});
