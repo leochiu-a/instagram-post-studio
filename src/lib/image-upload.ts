@@ -61,6 +61,25 @@ export async function uploadImage(file: File, postId: string): Promise<string> {
   return supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
+/** 從公開網址反推 bucket 裡的路徑。不是我們的網址就回 null。 */
+function pathOf(url: string) {
+  const marker = `/storage/v1/object/public/${IMAGE_BUCKET}/`;
+  const at = url.indexOf(marker);
+  return at === -1 ? null : url.slice(at + marker.length);
+}
+
+/**
+ * 刪掉一批不再被引用的圖。
+ *
+ * 沒有這一步，換一次圖就漏一個檔：換圖只會改 slide 的 imageUrl，
+ * 舊物件還躺在 bucket 裡沒人指向它 —— 免費方案那 1GB 就是這樣被吃掉的。
+ */
+export async function removeImages(urls: string[]) {
+  const paths = urls.map(pathOf).filter((path): path is string => path !== null);
+  if (paths.length === 0) return;
+  await supabase.storage.from(IMAGE_BUCKET).remove(paths);
+}
+
 /** 貼文刪掉時把它整個資料夾的圖也清掉，bucket 才不會一直長。 */
 export async function removePostImages(postId: string) {
   const { data } = await supabase.storage.from(IMAGE_BUCKET).list(postId);

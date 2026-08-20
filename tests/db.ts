@@ -30,6 +30,8 @@ export interface Fixture {
   tag: string;
   /** 直接讀資料庫，用來驗「真的寫進去了」 */
   read: (id: string) => Promise<Post | null>;
+  /** 這篇貼文在 bucket 裡的圖有哪些（檔名） */
+  images: (postId: string) => Promise<string[]>;
 }
 
 export const test = base.extend<{ app: Fixture }>({
@@ -57,7 +59,12 @@ export const test = base.extend<{ app: Fixture }>({
       return (data as Post | null) ?? null;
     };
 
-    await use({ seed, tag, read });
+    const images = async (postId: string) => {
+      const { data } = await db.storage.from("post-images").list(postId);
+      return (data ?? []).map((file) => file.name).toSorted();
+    };
+
+    await use({ seed, tag, read, images });
 
     if (ids.length > 0) {
       await db.from("posts").delete().in("id", ids);

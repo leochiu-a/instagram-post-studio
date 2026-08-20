@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { parseMarkdown, renumber } from "./markdown";
-import { removePostImages } from "./image-upload";
+import { removeImages, removePostImages } from "./image-upload";
 import { supabase } from "./supabase";
 import type { Post, Slide } from "./types";
 
@@ -204,10 +204,23 @@ export function usePost(id: string) {
     [id],
   );
 
-  /** 頁面一有變動就重新編號，內頁的頁碼永遠連續 */
+  /**
+   * 頁面一有變動就重新編號，內頁的頁碼永遠連續。
+   *
+   * 順便清掉沒人再引用的圖。所有動到 slides 的路徑都經過這裡 —— 換圖、
+   * 移除圖、刪一整頁、Markdown 重新套用 —— 所以只要在這個關口比對前後兩份
+   * 就夠了，不用在每個變動點各寫一次。
+   */
   const setSlides = useCallback(
-    (slides: Slide[]) => update({ slides: renumber(slides) }),
-    [update],
+    (slides: Slide[]) => {
+      const before = collection.posts[id]?.slides ?? [];
+      update({ slides: renumber(slides) });
+
+      const kept = new Set(slides.map((slide) => slide.imageUrl));
+      const orphans = before.map((slide) => slide.imageUrl).filter((url) => url && !kept.has(url));
+      if (orphans.length > 0) void removeImages(orphans);
+    },
+    [update, id],
   );
 
   return { post, update, setSlides };

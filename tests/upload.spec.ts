@@ -66,3 +66,38 @@ test("上傳的圖進 Storage，公開網址匯得出來", async ({ page, app })
     `版位中心應該是上傳的顏色，實際拿到 ${pixel.join(",")}`,
   ).toBe(true);
 });
+
+test("換圖會把舊的檔案從 bucket 刪掉", async ({ page, app }) => {
+  const post = await app.seed();
+  await page.goto(`/post/${post.id}`);
+  await expect(page.locator(`[data-slide-id="${SLIDES[0].id}"]`)).toBeVisible();
+  await page.getByRole("button", { name: "逐頁" }).click();
+
+  const cover = page.locator('input[type="file"]').first();
+  const coverUrl = () => app.read(post.id).then((row) => row?.slides[0]?.imageUrl ?? "");
+
+  /** 上傳並等到寫回資料庫 —— 寫入是 debounce 的，不能一上傳完就讀 */
+  const upload = async (hex: string) => {
+    const before = await coverUrl();
+    await cover.setInputFiles({
+      name: "pic.png",
+      mimeType: "image/png",
+      buffer: solidPng(hex),
+    });
+    await expect.poll(coverUrl).not.toBe(before);
+    return coverUrl();
+  };
+
+  const first = await upload("#ff00ff");
+  const firstName = first.split("/").pop() ?? "";
+  expect(await app.images(post.id)).toEqual([firstName]);
+
+  // 換第二張：bucket 裡應該只剩新的那個，舊的不能留下來當孤兒
+  await upload("#00ff88");
+  await expect.poll(() => app.images(post.id)).toHaveLength(1);
+  expect(await app.images(post.id)).not.toContain(firstName);
+
+  // 按叉叉移除圖片，bucket 要清空
+  await page.getByRole("button", { name: "移除圖片" }).first().click();
+  await expect.poll(() => app.images(post.id)).toEqual([]);
+});
