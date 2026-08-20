@@ -2,8 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --font-sans: var(--font-sans);
   --font-heading: var(--font-sans);
@@ -39,6 +37,7 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-canvas: var(--canvas);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,7 +48,15 @@
 }
 
 /*
-  Technical / instrument：近黑檯面、髮絲線、一個訊號色。
+  chrome 一律去飽和。十個競品看下來，唯一的共通規則不是「白底」也不是「深底」——
+  Polotno 走深色、Buffer 走暖米白、Canva 走白，共同點是**低飽和**。
+  Polotno 更極端：整個介面零彩色，全畫面唯一的飽和色是被選中物件的控制點。
+
+  所以這裡只留一個彩色 --ring，而且只用在「使用者正在動的那個東西」上：
+  焦點框、以及被選中的那一張預覽。主要按鈕（匯出）改用中性墨色——
+  它是最重要的動作，但不是「正在動的東西」，靠明度對比就夠強了。
+
+  灰階統一混一點藍相（250），是冷調中性灰。
   Latin 排在 CJK 前面，數字與英文才會用 Archivo / JetBrains Mono 的字形；
   --font-slide 只有版型畫布在用，不要混進來改動匯出結果。
 */
@@ -57,77 +64,54 @@
   --font-sans: var(--font-archivo), var(--font-slide), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), var(--font-slide), ui-monospace, monospace;
 
-  --radius: 0.375rem;
+  /*
+    線少了之後，圓角要再大一階才撐得住「面」的感覺。
+    參考的 Contentdrips 是面板 16px、chip 全圓 —— 這裡取 12px 當基準，
+    按鈕與單行輸入另外走全圓。
+  */
+  --radius: 0.75rem;
 
   --background: oklch(1 0 0);
-  --foreground: oklch(0.18 0.004 285);
-  --card: oklch(0.985 0.001 285);
-  --card-foreground: oklch(0.18 0.004 285);
+  --foreground: oklch(0.2 0.008 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.008 250);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.004 285);
-  --primary: oklch(0.72 0.15 68);
-  --primary-foreground: oklch(0.2 0.03 68);
-  --secondary: oklch(0.965 0.002 285);
-  --secondary-foreground: oklch(0.25 0.004 285);
-  --muted: oklch(0.965 0.002 285);
-  --muted-foreground: oklch(0.5 0.005 285);
-  --accent: oklch(0.965 0.002 285);
-  --accent-foreground: oklch(0.25 0.004 285);
-  --destructive: oklch(0.55 0.2 27);
-  --border: oklch(0.18 0.004 285 / 12%);
-  --input: oklch(0.18 0.004 285 / 16%);
-  --ring: oklch(0.72 0.15 68);
-  --chart-1: oklch(0.72 0.15 68);
-  --chart-2: oklch(0.6 0.01 285);
-  --chart-3: oklch(0.48 0.008 285);
-  --chart-4: oklch(0.38 0.006 285);
-  --chart-5: oklch(0.28 0.004 285);
-  --sidebar: oklch(0.985 0.001 285);
-  --sidebar-foreground: oklch(0.18 0.004 285);
-  --sidebar-primary: oklch(0.72 0.15 68);
-  --sidebar-primary-foreground: oklch(0.2 0.03 68);
-  --sidebar-accent: oklch(0.965 0.002 285);
-  --sidebar-accent-foreground: oklch(0.25 0.004 285);
-  --sidebar-border: oklch(0.18 0.004 285 / 12%);
-  --sidebar-ring: oklch(0.72 0.15 68);
+  --popover-foreground: oklch(0.2 0.008 250);
+  /* 主要動作是墨色不是彩色：靠明度撐出份量，不跟版型搶顏色 */
+  --primary: oklch(0.27 0.008 250);
+  --primary-foreground: oklch(0.98 0.002 250);
+  --secondary: oklch(0.958 0.012 270);
+  --secondary-foreground: oklch(0.3 0.008 250);
+  --muted: oklch(0.958 0.012 270);
+  --muted-foreground: oklch(0.555 0.008 250);
+  --accent: oklch(0.958 0.012 270);
+  --accent-foreground: oklch(0.3 0.008 250);
+  --destructive: oklch(0.55 0.21 27);
+  --border: oklch(0.2 0.008 250 / 9%);
+  --input: oklch(0.2 0.008 250 / 16%);
+  /* 全站唯一的彩色。只出現在焦點框與「選中的那一張」上 */
+  --ring: oklch(0.58 0.13 250);
+  --chart-1: oklch(0.58 0.13 250);
+  --chart-2: oklch(0.68 0.008 250);
+  --chart-3: oklch(0.55 0.008 250);
+  --chart-4: oklch(0.42 0.008 250);
+  --chart-5: oklch(0.3 0.008 250);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.2 0.008 250);
+  --sidebar-primary: oklch(0.27 0.008 250);
+  --sidebar-primary-foreground: oklch(0.98 0.002 250);
+  --sidebar-accent: oklch(0.958 0.012 270);
+  --sidebar-accent-foreground: oklch(0.3 0.008 250);
+  --sidebar-border: oklch(0.2 0.008 250 / 9%);
+  --sidebar-ring: oklch(0.58 0.13 250);
 
-  /* 檯面上的髮絲網格，1080 畫布縮到預覽欄時剛好對得上 */
-  --bench-line: oklch(1 0 0 / 3.5%);
-}
-
-.dark {
-  /* 三層檯面：#0b0b0c → #141416 → #1c1c20，靠亮度分層而不是靠陰影 */
-  --background: oklch(0.145 0.003 285);
-  --foreground: oklch(0.96 0.002 285);
-  --card: oklch(0.195 0.004 285);
-  --card-foreground: oklch(0.96 0.002 285);
-  --popover: oklch(0.195 0.004 285);
-  --popover-foreground: oklch(0.96 0.002 285);
-  --primary: oklch(0.8 0.15 73);
-  --primary-foreground: oklch(0.19 0.035 73);
-  --secondary: oklch(0.245 0.005 285);
-  --secondary-foreground: oklch(0.96 0.002 285);
-  --muted: oklch(0.245 0.005 285);
-  --muted-foreground: oklch(0.7 0.004 285);
-  --accent: oklch(0.245 0.005 285);
-  --accent-foreground: oklch(0.96 0.002 285);
-  --destructive: oklch(0.7 0.17 24);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.8 0.15 73);
-  --chart-1: oklch(0.8 0.15 73);
-  --chart-2: oklch(0.7 0.004 285);
-  --chart-3: oklch(0.56 0.004 285);
-  --chart-4: oklch(0.42 0.004 285);
-  --chart-5: oklch(0.3 0.004 285);
-  --sidebar: oklch(0.195 0.004 285);
-  --sidebar-foreground: oklch(0.96 0.002 285);
-  --sidebar-primary: oklch(0.8 0.15 73);
-  --sidebar-primary-foreground: oklch(0.19 0.035 73);
-  --sidebar-accent: oklch(0.245 0.005 285);
-  --sidebar-accent-foreground: oklch(0.96 0.002 285);
-  --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.8 0.15 73);
+  /*
+    畫布區的底：比 chrome 暗一階，讓 1080 版型自己浮起來。
+    帶一點紫藍不是為了好看 —— 中性灰配上任何版型都會顯得髒，
+    有色相的底反而讓白色畫布看起來更白。
+  */
+  --canvas: oklch(0.964 0.022 270);
+  --canvas-line: oklch(0.45 0.06 270 / 8%);
 }
 
 @layer base {
@@ -189,26 +173,37 @@
 
 @layer components {
   /*
-    預覽檯面。這是整個工具唯一的裝飾，而它有意義：
-    1080 畫布是逐 px 對齊 Canva 量出來的座標，底下鋪一層對齊網格
-    正好說明這件事，也讓縮放後的版型有個可以「靠」的參考線。
+    預覽檯面。方格是這個類別的共同語彙——專做輪播的工具（aiCarousels、
+    Contentdrips）畫布底下都有方格，通用工具（Adobe Express）才是純灰。
+    它不是裝飾：1080 畫布縮到預覽欄之後，格線是唯一能判斷「縮放了多少」的參考。
+
+    24px 一格、5% 墨色，淡到不會跟版型自己的排版互相干擾。
   */
   .bench {
+    background-color: var(--canvas);
     background-image:
-      linear-gradient(to right, var(--bench-line) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--bench-line) 1px, transparent 1px);
+      linear-gradient(to right, var(--canvas-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--canvas-line) 1px, transparent 1px);
     background-size: 24px 24px;
   }
 
   /*
-    分段控制項的「目前選到」必須一眼看得出來。shadcn 預設 pressed 與 hover
-    都是 bg-muted，兩個狀態疊在一起就分不出來了；這裡把選中的那一格抬到
-    secondary 檯面、字色補滿，並補一圈內描邊。
+    分段控制項：整條是一個凹下去的槽，選中的那一格是浮起來的白色藥丸。
+    原本是靠 inset 描邊表示選中 —— 那是一條線，換成色階加一層很輕的陰影。
+
+    選擇器要對到 data-variant="default"，所以呼叫端一定要把 variant 明寫出來：
+    ToggleGroup 沒給 variant 時 data-variant 整個屬性都不會渲染，選不到。
   */
+  [data-slot="toggle-group"][data-variant="default"] {
+    background-color: var(--muted);
+    border-radius: 9999px;
+    padding: 4px;
+  }
+
   [data-slot="toggle-group-item"][aria-pressed="true"] {
-    background-color: var(--secondary);
+    background-color: var(--background);
     color: var(--foreground);
-    box-shadow: inset 0 0 0 1px var(--border);
+    box-shadow: 0 1px 2px oklch(0.2 0.008 250 / 8%);
   }
 }
 

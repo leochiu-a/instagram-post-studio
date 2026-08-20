@@ -47,7 +47,7 @@ export function ImagePicker({ value, onChange }: ImagePickerProps) {
           onChange={(event) => void pick(event.target.files?.[0])}
         />
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={() => document.getElementById(inputId)?.click()}
         >

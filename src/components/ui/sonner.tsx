@@ -9,11 +9,11 @@ import {
   Loader2Icon,
 } from "lucide-react";
 
-/** 這個工具只有深色檯面，不需要 next-themes 那層切換 */
+/** 這個工具只有淺色檯面，不需要 next-themes 那層切換 */
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
-      theme="dark"
+      theme="light"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

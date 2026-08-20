@@ -31,7 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="zh-Hant"
-      className={`dark ${archivo.variable} ${jetbrainsMono.variable} ${slideFont.variable} h-full antialiased`}
+      className={`${archivo.variable} ${jetbrainsMono.variable} ${slideFont.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         {children}
