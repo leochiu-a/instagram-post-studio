@@ -26,7 +26,7 @@ const measure = () =>
     ),
     benchBottom: Math.round(document.querySelector(".bench")!.getBoundingClientRect().bottom),
     stripTop: Math.round(
-      document.querySelector('[aria-label="跳到第 1 張"]')?.getBoundingClientRect().top ??
+      document.querySelector('[aria-label="第 1 張縮圖"]')?.getBoundingClientRect().top ??
         Number.POSITIVE_INFINITY,
     ),
   }) as const;
@@ -46,49 +46,61 @@ test.beforeEach(async ({ page, app }) => {
   await expect(page.locator(`[data-slide-id="${post.slides[0].id}"]`)).toBeVisible();
 });
 
-test("桌機版是 rail + 固定寬面板 + 吃滿剩餘空間的畫布區，頁面本身不捲動", async ({ page }) => {
+test("桌機版是 rail + 面板 + 吃滿剩餘空間的畫布區，頁面本身不捲動", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 820 });
   const layout = await page.evaluate(measure);
 
   expect(layout.pageScrolls, "外殼固定高度，捲動交給各欄自己").toBe(false);
   expect(layout.columns, "rail、面板、畫布欄").toHaveLength(3);
   expect(layout.columns[0], "rail 是 84px").toBe(84);
-  expect(layout.columns[1], "面板是 340px").toBe(340);
+  expect(layout.columns[1], "面板的預設寬度是 340px").toBe(340);
   expect(layout.columns[2], "剩下的全歸畫布區").toBeGreaterThan(1280 - 84 - 340 - 20);
 
   // rail 是寫死寬度的，標籤長度不能把它撐破（Markdown 這個字就差點做到）
   expect(layout.railOverflowsX, "rail 的標籤不能溢出").toBe(false);
 });
 
-test("收合面板之後畫布吃滿剩下的寬度", async ({ page }) => {
+test("拖分隔線改面板寬度，重新整理後還記得", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 820 });
   await settle(page);
   const before = await page.evaluate(measure);
 
-  await page.getByRole("button", { name: "收合面板" }).click();
+  const resizer = page.getByRole("separator", { name: "調整面板寬度" });
+  const box = (await resizer.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 120, box.y + box.height / 2, { steps: 8 });
+  await page.mouse.up();
   await settle(page);
-  const after = await page.evaluate(measure);
 
-  expect(after.columns, "面板整個拿掉，只剩 rail 與畫布欄").toHaveLength(2);
-  expect(after.columns[1]).toBeGreaterThan(before.columns[2] + 300);
+  const wider = await page.evaluate(measure);
+  expect(wider.columns[1], "面板跟著指標變寬").toBeGreaterThan(before.columns[1] + 80);
+  expect(wider.columns[2], "畫布區讓出等量的空間").toBeLessThan(before.columns[2]);
 
-  // 再點一次 rail 上的項目就回來
-  await page.getByRole("button", { name: "Markdown" }).click();
-  expect((await page.evaluate(measure)).columns).toHaveLength(3);
+  // 只能用滑鼠拖的分隔線對鍵盤使用者等於不存在
+  await resizer.focus();
+  await page.keyboard.press("ArrowLeft");
+  await settle(page);
+  expect((await page.evaluate(measure)).columns[1]).toBe(wider.columns[1] - 16);
+
+  // 寬度記在 localStorage，重新整理後還在
+  const kept = (await page.evaluate(measure)).columns[1];
+  await page.reload();
+  await expect(page.locator("[data-slide-id]").first()).toBeVisible();
+  await settle(page);
+  expect((await page.evaluate(measure)).columns[1]).toBe(kept);
 });
 
-test("縮圖抽屜展開時畫布讓出高度，不是蓋在上面", async ({ page }) => {
+test("頁面列一直開著，而且是讓出高度不是蓋在畫布上", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 820 });
   await settle(page);
-  const before = await page.evaluate(measure);
 
-  await page.getByRole("button", { name: "頁面 05" }).click();
-  await expect(page.getByRole("button", { name: "跳到第 3 張" })).toBeVisible();
-  await settle(page);
-  const after = await page.evaluate(measure);
+  // 沒有任何展開動作，一進來就該看得到
+  await expect(page.getByLabel("第 3 張縮圖")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^收合|展開/ })).toHaveCount(0);
 
-  expect(after.cardHeight, "抽屜佔掉高度，預覽跟著縮小").toBeLessThan(before.cardHeight);
-  expect(after.benchBottom, "抽屜是讓出來的，不是蓋上去的").toBeLessThanOrEqual(after.stripTop);
+  const layout = await page.evaluate(measure);
+  expect(layout.benchBottom, "頁面列是讓出來的，不是蓋上去的").toBeLessThanOrEqual(layout.stripTop);
 
   // 縮圖是同一個 SlideCard 再畫一次。匯出靠 data-slide-id 找節點、而
   // querySelector 只會拿第一個 —— 縮圖沒標 decorative 的話就會匯出到那張 52px 的。

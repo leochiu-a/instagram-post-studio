@@ -6,7 +6,6 @@ import {
   FileTextIcon,
   LayersIcon,
   MoonIcon,
-  PanelLeftCloseIcon,
   SlidersHorizontalIcon,
   SunIcon,
 } from "lucide-react";
@@ -15,6 +14,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EditorMarkdown } from "@/components/editor-markdown";
 import { EditorSlides } from "@/components/editor-slides";
+import { PanelResizer } from "@/components/panel-resizer";
 import { PreviewList } from "@/components/preview-list";
 import { SlideFilmstrip } from "@/components/slide-filmstrip";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { downloadAllAsZip, downloadSlide, safeFileName } from "@/lib/export";
 import { cn } from "@/lib/utils";
 import { parseMarkdown, toMarkdown } from "@/lib/markdown";
 import { useHydrated, usePost } from "@/lib/post-store";
+import { usePanelWidth } from "@/lib/use-panel-width";
 import { KIND_LABEL, type Slide, type ThemeName } from "@/lib/types";
 
 const THEMES: { value: ThemeName; label: string; icon: typeof MoonIcon }[] = [
@@ -70,9 +71,8 @@ function PanelLabel({ children }: { children: React.ReactNode }) {
 export function PostEditor({ postId }: { postId: string }) {
   const { post, update, setSlides } = usePost(postId);
   const hydrated = useHydrated();
-  /** null = 面板收起來，畫布吃滿整個寬度 */
-  const [panel, setPanel] = useState<PanelName | null>("markdown");
-  const [stripOpen, setStripOpen] = useState(false);
+  const [panel, setPanel] = useState<PanelName>("markdown");
+  const { width: panelWidth, resize } = usePanelWidth();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -199,8 +199,8 @@ export function PostEditor({ postId }: { postId: string }) {
       <main className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/*
           rail：窄螢幕橫著排在上面，桌機才立成 64px 的直排。
-          點目前這一格會把面板收起來，讓畫布吃滿 —— 收合的入口有兩個
-          （這裡與面板邊緣的把手），兩個都對應到同一個 panel state。
+          它只切換「在編哪一種東西」—— 面板不會收起來，要更多畫布空間
+          就拖分隔線把它縮窄。
         */}
         <nav aria-label="編輯面板" className="flex shrink-0 gap-2 p-2 lg:w-[84px] lg:flex-col">
           {PANELS.map(({ value, label, icon: Icon }) => {
@@ -211,8 +211,8 @@ export function PostEditor({ postId }: { postId: string }) {
                 key={value}
                 type="button"
                 aria-controls="editor-panel"
-                aria-expanded={current}
-                onClick={() => setPanel(current ? null : value)}
+                aria-pressed={current}
+                onClick={() => setPanel(value)}
                 className={cn(
                   "focus-visible:ring-ring/50 flex flex-1 flex-col items-center justify-center gap-1.5 overflow-hidden rounded-2xl px-1.5 py-3.5 text-[0.6875rem] font-medium transition-colors duration-100 outline-none focus-visible:ring-3 lg:flex-none",
                   current
@@ -228,104 +228,90 @@ export function PostEditor({ postId }: { postId: string }) {
           })}
         </nav>
 
-        {panel && (
-          /*
-            面板固定 340px：表單需要的寬度是有限的，多的都該給畫布。
-            relative 是給收合把手定位用的，所以捲動要放在裡面那層 ——
-            把手掛在會捲的容器上會跟著內容跑掉。
-          */
-          <div
-            id="editor-panel"
-            className="relative flex min-w-0 flex-col lg:w-[340px] lg:shrink-0"
-          >
-            <div className="flex min-h-0 flex-1 flex-col gap-5 p-5 lg:overflow-y-auto">
-              {panel === "settings" && (
-                <>
-                  <PanelLabel>貼文設定</PanelLabel>
+        {/*
+          面板寬度由使用者拖出來（記在 localStorage）。
+          relative 是給分隔線定位用的，所以捲動要放在裡面那層 ——
+          分隔線掛在會捲的容器上會跟著內容跑掉。
+        */}
+        <div
+          id="editor-panel"
+          className="relative flex min-w-0 flex-col lg:w-(--panel-width) lg:shrink-0"
+          style={{ ["--panel-width" as string]: `${panelWidth}px` }}
+        >
+          <div className="flex min-h-0 flex-1 flex-col gap-5 p-5 lg:overflow-y-auto">
+            {panel === "settings" && (
+              <>
+                <PanelLabel>貼文設定</PanelLabel>
 
-                  <FieldGroup className="grid grid-cols-2 gap-3">
-                    <Field>
-                      <FieldLabel htmlFor="post-handle">帳號</FieldLabel>
-                      <Input
-                        id="post-handle"
-                        value={post.handle}
-                        onChange={(event) => update({ handle: event.target.value })}
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="post-timestamp">時間</FieldLabel>
-                      <Input
-                        id="post-timestamp"
-                        value={post.timestamp}
-                        onChange={(event) => update({ timestamp: event.target.value })}
-                      />
-                    </Field>
-                  </FieldGroup>
-
+                <FieldGroup className="grid grid-cols-2 gap-3">
                   <Field>
-                    <FieldTitle>配色</FieldTitle>
-                    <ToggleGroup
-                      value={[post.theme]}
-                      onValueChange={([next]) => next && update({ theme: next as ThemeName })}
-                      variant="default"
-                      className="w-full *:flex-1"
-                    >
-                      {THEMES.map(({ value, label, icon: Icon }) => (
-                        <ToggleGroupItem key={value} value={value} aria-label={label}>
-                          <Icon data-icon="inline-start" />
-                          {label}
-                        </ToggleGroupItem>
-                      ))}
-                    </ToggleGroup>
+                    <FieldLabel htmlFor="post-handle">帳號</FieldLabel>
+                    <Input
+                      id="post-handle"
+                      value={post.handle}
+                      onChange={(event) => update({ handle: event.target.value })}
+                    />
                   </Field>
-                </>
-              )}
+                  <Field>
+                    <FieldLabel htmlFor="post-timestamp">時間</FieldLabel>
+                    <Input
+                      id="post-timestamp"
+                      value={post.timestamp}
+                      onChange={(event) => update({ timestamp: event.target.value })}
+                    />
+                  </Field>
+                </FieldGroup>
 
-              {panel === "markdown" && (
-                <>
-                  <PanelLabel>Markdown</PanelLabel>
-                  <EditorMarkdown
-                    value={draft}
-                    onChange={(value) => update({ draft: value })}
-                    onApply={() => {
-                      setSlides(parseMarkdown(draft));
-                      setPanel("slides");
-                    }}
-                    onPullFromSlides={() => update({ draft: toMarkdown(post.slides) })}
-                  />
-                </>
-              )}
+                <Field>
+                  <FieldTitle>配色</FieldTitle>
+                  <ToggleGroup
+                    value={[post.theme]}
+                    onValueChange={([next]) => next && update({ theme: next as ThemeName })}
+                    variant="default"
+                    className="w-full *:flex-1"
+                  >
+                    {THEMES.map(({ value, label, icon: Icon }) => (
+                      <ToggleGroupItem key={value} value={value} aria-label={label}>
+                        <Icon data-icon="inline-start" />
+                        {label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                </Field>
+              </>
+            )}
 
-              {panel === "slides" && (
-                <>
-                  <PanelLabel>逐頁 · {String(post.slides.length).padStart(2, "0")}</PanelLabel>
-                  <EditorSlides
-                    postId={postId}
-                    slides={post.slides}
-                    onChange={setSlides}
-                    activeId={activeId}
-                    onFocus={setActiveId}
-                  />
-                </>
-              )}
-            </div>
+            {panel === "markdown" && (
+              <>
+                <PanelLabel>Markdown</PanelLabel>
+                <EditorMarkdown
+                  value={draft}
+                  onChange={(value) => update({ draft: value })}
+                  onApply={() => {
+                    setSlides(parseMarkdown(draft));
+                    setPanel("slides");
+                  }}
+                  onPullFromSlides={() => update({ draft: toMarkdown(post.slides) })}
+                />
+              </>
+            )}
 
-            {/*
-              收合把手，跨在面板與畫布的交界上（Polotno 是同一個做法，
-              Adobe Express 則是面板右上角的 ×）。手機沒有這個問題，直接不畫。
-            */}
-            <button
-              type="button"
-              aria-controls="editor-panel"
-              aria-expanded
-              aria-label="收合面板"
-              onClick={() => setPanel(null)}
-              className="bg-background text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 absolute top-1/2 -right-3 z-20 hidden size-6 -translate-y-1/2 items-center justify-center rounded-full shadow-[0_1px_3px_rgb(14_19_24/0.14)] transition-colors duration-100 outline-none focus-visible:ring-3 lg:flex"
-            >
-              <PanelLeftCloseIcon className="size-3.5" />
-            </button>
+            {panel === "slides" && (
+              <>
+                <PanelLabel>逐頁 · {String(post.slides.length).padStart(2, "0")}</PanelLabel>
+                <EditorSlides
+                  postId={postId}
+                  slides={post.slides}
+                  onChange={setSlides}
+                  activeId={activeId}
+                  onFocus={setActiveId}
+                />
+              </>
+            )}
           </div>
-        )}
+
+          <PanelResizer width={panelWidth} onResize={resize} />
+        </div>
 
         {/*
           畫布欄。抽屜展開時它是這一欄裡真正佔高度的一列，畫布區跟著變矮、
@@ -350,12 +336,11 @@ export function PostEditor({ postId }: { postId: string }) {
             timestamp={post.timestamp}
             theme={post.theme}
             activeId={activeId}
-            open={stripOpen}
-            onOpenChange={setStripOpen}
             onSelect={(id) => {
               setActiveId(id);
               scrollPreviewIntoView(id);
             }}
+            onReorder={setSlides}
           />
         </div>
       </main>
