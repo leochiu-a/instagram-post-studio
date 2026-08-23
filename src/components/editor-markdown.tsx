@@ -1,14 +1,11 @@
 "use client";
 
-import { ChevronRightIcon, UndoIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronRightIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 interface EditorMarkdownProps {
   value: string;
   onChange: (value: string) => void;
-  onApply: () => void;
-  onPullFromSlides: () => void;
 }
 
 /** 語法說明裡的行內範例。訊號色留給「正在動作」的東西，這裡只用檯面色分層 */
@@ -20,12 +17,7 @@ function Syntax({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function EditorMarkdown({
-  value,
-  onChange,
-  onApply,
-  onPullFromSlides,
-}: EditorMarkdownProps) {
+export function EditorMarkdown({ value, onChange }: EditorMarkdownProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/*
@@ -54,22 +46,13 @@ export function EditorMarkdown({
       />
 
       {/*
-        一個動作只講一次：主要按鈕滿版、後果寫成它底下的一行小字，
-        反向的「用頁面覆蓋草稿」降成 ghost。原本主次同大小並排、底下再掛一張
-        警告卡，同一件事被講了三次。
+        沒有按鈕：停下來就套用，逐頁那邊也會即時把改動寫回這份草稿——
+        兩邊互為對方的投影，不用哪一邊「贏過」哪一邊。
       */}
-      <div className="flex flex-col items-start gap-2 pt-1">
-        <Button className="w-full" onClick={onApply}>
-          套用到頁面
-        </Button>
-        <p className="text-muted-foreground text-xs leading-relaxed">
-          會重建所有頁面，逐頁微調過的內容將被覆蓋。
-        </p>
-        <Button variant="ghost" size="xs" onClick={onPullFromSlides}>
-          <UndoIcon data-icon="inline-start" />
-          用目前頁面覆蓋草稿
-        </Button>
-      </div>
+      <p className="text-muted-foreground text-xs leading-relaxed">
+        停止輸入後會自動同步到逐頁；逐頁裡不能用 Markdown 表達的欄位（頁碼、圖片版位、CTA
+        數字）在這裡編輯會被重建覆蓋。
+      </p>
     </div>
   );
 }

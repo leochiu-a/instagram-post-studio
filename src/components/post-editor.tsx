@@ -10,7 +10,7 @@ import {
   SunIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { EditorMarkdown } from "@/components/editor-markdown";
 import { EditorSlides } from "@/components/editor-slides";
@@ -26,10 +26,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { downloadAllAsZip, downloadSlide, safeFileName } from "@/lib/export";
 import { cn } from "@/lib/utils";
-import { parseMarkdown, toMarkdown } from "@/lib/markdown";
+import { parseMarkdown } from "@/lib/markdown";
 import { useHydrated, usePost } from "@/lib/post-store";
 import { usePanelWidth } from "@/lib/use-panel-width";
 import { KIND_LABEL, type Slide, type ThemeName } from "@/lib/types";
+
+/** 跟 post-store 裡送出 Supabase 寫入用的同一個節奏，使用者已經習慣這個停頓感 */
+const APPLY_DELAY = 600;
 
 const THEMES: { value: ThemeName; label: string; icon: typeof MoonIcon }[] = [
   { value: "dark", label: "深色", icon: MoonIcon },
@@ -75,8 +78,28 @@ export function PostEditor({ postId }: { postId: string }) {
   const { width: panelWidth, resize } = usePanelWidth();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const applyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const baseName = useMemo(() => safeFileName(post?.title ?? "ig-post"), [post?.title]);
+
+  /**
+   * 打字先只更新草稿本身，讓 Textarea 不卡頓；停下來一段時間後才真的解析
+   * 套用到逐頁 —— 逐頁每次改動又會把草稿重新生成一次（見 usePost.setSlides），
+   * 兩邊因此不用手動同步，也不會在使用者還在打字時被重排版打斷。
+   */
+  const editDraft = (value: string) => {
+    update({ draft: value });
+    if (applyTimer.current) clearTimeout(applyTimer.current);
+    applyTimer.current = setTimeout(() => setSlides(parseMarkdown(value)), APPLY_DELAY);
+  };
+
+  // 換頁離開或整個編輯器卸載時，還沒套用的解析就放掉——不留著跨貼文亂套。
+  useEffect(
+    () => () => {
+      if (applyTimer.current) clearTimeout(applyTimer.current);
+    },
+    [],
+  );
 
   const exportOne = async (slide: Slide, index: number) => {
     const node = document.querySelector<HTMLElement>(`[data-slide-id="${slide.id}"]`);
@@ -284,15 +307,7 @@ export function PostEditor({ postId }: { postId: string }) {
             {panel === "markdown" && (
               <>
                 <PanelLabel>Markdown</PanelLabel>
-                <EditorMarkdown
-                  value={draft}
-                  onChange={(value) => update({ draft: value })}
-                  onApply={() => {
-                    setSlides(parseMarkdown(draft));
-                    setPanel("slides");
-                  }}
-                  onPullFromSlides={() => update({ draft: toMarkdown(post.slides) })}
-                />
+                <EditorMarkdown value={draft} onChange={editDraft} />
               </>
             )}
 
@@ -304,7 +319,10 @@ export function PostEditor({ postId }: { postId: string }) {
                   slides={post.slides}
                   onChange={setSlides}
                   activeId={activeId}
-                  onFocus={setActiveId}
+                  onFocus={(id) => {
+                    setActiveId(id);
+                    scrollPreviewIntoView(id);
+                  }}
                 />
               </>
             )}

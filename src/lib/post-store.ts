@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { parseMarkdown, renumber } from "./markdown";
+import { parseMarkdown, renumber, toMarkdown } from "./markdown";
 import { removeImages, removePostImages } from "./image-upload";
 import { supabase } from "./supabase";
 import type { Post, Slide } from "./types";
@@ -205,7 +205,9 @@ export function usePost(id: string) {
   );
 
   /**
-   * 頁面一有變動就重新編號，內頁的頁碼永遠連續。
+   * 頁面一有變動就重新編號，內頁的頁碼永遠連續。同時把 Markdown 草稿重新
+   * 生成，讓兩種編輯模式不用手動同步 —— 逐頁是這裡唯一的寫入路徑，草稿
+   * 永遠是 slides 目前狀態的投影，不會各自漂移。
    *
    * 順便清掉沒人再引用的圖。所有動到 slides 的路徑都經過這裡 —— 換圖、
    * 移除圖、刪一整頁、Markdown 重新套用 —— 所以只要在這個關口比對前後兩份
@@ -214,7 +216,8 @@ export function usePost(id: string) {
   const setSlides = useCallback(
     (slides: Slide[]) => {
       const before = collection.posts[id]?.slides ?? [];
-      update({ slides: renumber(slides) });
+      const renumbered = renumber(slides);
+      update({ slides: renumbered, draft: toMarkdown(renumbered) });
 
       const kept = new Set(slides.map((slide) => slide.imageUrl));
       const orphans = before.map((slide) => slide.imageUrl).filter((url) => url && !kept.has(url));
