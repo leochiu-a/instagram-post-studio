@@ -3,6 +3,9 @@
   "configurations": [
     {
       "name": "ig-post-studio",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev", "-p", "3210"],
+      "port": 3210,
       "url": "http://localhost:3210"
     }
   ]
