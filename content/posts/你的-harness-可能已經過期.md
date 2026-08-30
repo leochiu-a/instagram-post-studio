@@ -2,7 +2,7 @@
 title: "你的 Harness 可能已經過期"
 handle: "@leo.web.dev"
 timestamp: "3 min ago"
-theme: "dark"
+theme: "light"
 created: "2026-08-30T04:39:54.215Z"
 cta:
   subhead: "分享給你的朋友吧！"
