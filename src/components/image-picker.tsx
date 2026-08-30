@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
-import { isManagedImage, uploadImage } from "@/lib/image-upload";
+import { uploadImage } from "@/lib/image-upload";
 
 interface ImagePickerProps {
   postId: string;
@@ -15,16 +15,16 @@ interface ImagePickerProps {
 }
 
 /**
- * 選到的圖直接上傳到 Supabase Storage，欄位存的是公開網址。
- * 之前存 data URL 是因為沒有後端，但那會把整張圖塞進貼文的 JSON 裡 ——
- * 一篇多圖的貼文光是自己就好幾 MB。
+ * 選到的圖會寫進 public/post-images/<貼文>/，欄位存的是相對路徑。
+ * 不存 data URL 是因為那會把整張圖塞進貼文的 Markdown 裡 ——
+ * 一篇多圖的貼文光是自己就好幾 MB，而且完全沒辦法讀。
  */
 export function ImagePicker({ postId, value, onChange }: ImagePickerProps) {
   const inputId = useId();
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
-  /** 只有不是我們 bucket 的外部網址才要擔心 CORS */
-  const isForeign = /^https?:/.test(value) && !isManagedImage(value);
+  /** 自己上傳的圖是同源的相對路徑；絕對網址一律是別人站上的，要擔心 CORS */
+  const isForeign = /^https?:/.test(value);
 
   const pick = async (file: File | undefined) => {
     if (!file) return;

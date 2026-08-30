@@ -32,7 +32,8 @@ export function EditorMarkdown({ value, onChange }: EditorMarkdownProps) {
         </summary>
         <p className="text-muted-foreground pt-2 pl-4.5 text-xs leading-relaxed">
           <Syntax># 標題</Syntax> 為封面，<Syntax>## 標題</Syntax> 各切一張內頁（頁碼自動編），
-          <Syntax>![](網址)</Syntax> 放圖，<Syntax>- </Syntax> 是項目符號，
+          <Syntax>![版位](網址)</Syntax> 放圖（版位是 <Syntax>banner</Syntax> /{" "}
+          <Syntax>square</Syntax> / <Syntax>none</Syntax>），<Syntax>- </Syntax> 是項目符號，
           <Syntax>**粗體**</Syntax> 與 <Syntax>`程式碼`</Syntax> 會套用強調色。結尾 CTA
           頁會自動補上。
         </p>
@@ -50,8 +51,8 @@ export function EditorMarkdown({ value, onChange }: EditorMarkdownProps) {
         兩邊互為對方的投影，不用哪一邊「贏過」哪一邊。
       */}
       <p className="text-muted-foreground text-xs leading-relaxed">
-        停止輸入後會自動同步到逐頁；逐頁裡不能用 Markdown 表達的欄位（頁碼、圖片版位、CTA
-        數字）在這裡編輯會被重建覆蓋。
+        停止輸入後會自動同步到逐頁。這份文字就是磁碟上那個 .md
+        檔的正文；頁碼與結尾頁的數字不在裡面，前者自動編、後者存在 frontmatter。
       </p>
     </div>
   );

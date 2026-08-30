@@ -31,7 +31,7 @@ import { useHydrated, usePost } from "@/lib/post-store";
 import { usePanelWidth } from "@/lib/use-panel-width";
 import { KIND_LABEL, type Slide, type ThemeName } from "@/lib/types";
 
-/** 跟 post-store 裡送出 Supabase 寫入用的同一個節奏，使用者已經習慣這個停頓感 */
+/** 跟 post-store 裡存檔用的同一個節奏，使用者已經習慣這個停頓感 */
 const APPLY_DELAY = 600;
 
 const THEMES: { value: ThemeName; label: string; icon: typeof MoonIcon }[] = [
@@ -144,7 +144,7 @@ export function PostEditor({ postId }: { postId: string }) {
   };
 
   if (!post) {
-    // 還沒從 Supabase 讀完之前不能斷定貼文不存在，先什麼都不畫
+    // 還沒讀完 content/posts 之前不能斷定貼文不存在，先什麼都不畫
     if (!hydrated) return null;
     return (
       <Empty className="flex-1">

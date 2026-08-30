@@ -1,9 +1,12 @@
-import type { Post, Slide } from "../src/lib/types";
+import { parseMarkdown } from "../src/lib/markdown";
+import type { CtaSlide } from "../src/lib/types";
 
-/** 用 data URL 當測試圖：跟真實上傳一樣不會有 CORS 問題 */
+/** 用 data URL 當測試圖：不必先上傳就能驗版位，也不會有 CORS 問題 */
 export function solidImage(hex: string, width = 600, height = 300) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="${width}" height="${height}" fill="${hex}"/></svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  // 括號要一起編碼：Markdown 的 ![](...) 是用 ")" 收尾的，留一個在網址裡就切錯了
+  const encoded = encodeURIComponent(svg).replaceAll("(", "%28").replaceAll(")", "%29");
+  return `data:image/svg+xml;charset=utf-8,${encoded}`;
 }
 
 export const COVER_IMAGE = "#f97316";
@@ -16,58 +19,48 @@ const LONG_BODY = Array.from(
   (_, i) => `第 ${i + 1} 行用來把內文撐長的測試文字，看看版位還守不守得住。`,
 ).join("\n");
 
-export const SLIDES: Slide[] = [
-  {
-    id: "t1",
-    kind: "cover",
-    title: "封面大標測試",
-    imageUrl: solidImage(COVER_IMAGE),
-    imageShape: "banner",
-  },
-  {
-    id: "t2",
-    kind: "content",
-    badge: "01",
-    heading: "橫幅版位",
-    body: "這一行有 `vp dev` 這段程式碼，要出現淺色 chip。",
-    imageUrl: solidImage(CONTENT_IMAGE),
-    imageShape: "banner",
-  },
-  {
-    id: "t3",
-    kind: "content",
-    badge: "02",
-    heading: "正方形版位",
-    body: "短內文。",
-    imageUrl: solidImage(CONTENT_IMAGE, 600, 600),
-    imageShape: "square",
-  },
-  {
-    id: "t4",
-    kind: "content",
-    badge: "03",
-    heading: "超長內文",
-    body: LONG_BODY,
-    imageUrl: solidImage(CONTENT_IMAGE),
-    imageShape: "banner",
-  },
-  {
-    id: "t5",
-    kind: "cta",
-    subhead: "分享給你的朋友吧！",
-    headline: "這篇貼文對你有幫助嗎？",
-    stats: ["560", "204", "427", "318"],
-    imageUrl: solidImage(CTA_IMAGE),
-  },
-];
+/**
+ * 一篇貼文的正文，跟磁碟上那個 .md 檔一模一樣 —— 版位就寫在圖片的 alt 裡。
+ * 測試不再自己組 Slide 陣列：頁面是從這份文字解析出來的，手寫一份等於在驗
+ * 一個實際上不存在的狀態。
+ */
+export const BODY = `# 封面大標測試
 
-/** 種進資料庫時 id 會被換成這個 test 專屬的 uuid（見 tests/db.ts 的 seed） */
-export const POST: Post = {
-  id: "t",
-  title: "版型驗證",
-  handle: "@leo.web.dev",
-  timestamp: "3 min ago",
-  theme: "dark",
-  slides: SLIDES,
-  draft: "",
+![banner](${solidImage(COVER_IMAGE)})
+
+## 橫幅版位
+
+![banner](${solidImage(CONTENT_IMAGE)})
+
+這一行有 \`vp dev\` 這段程式碼，要出現淺色 chip。
+
+## 正方形版位
+
+![square](${solidImage(CONTENT_IMAGE, 600, 600)})
+
+短內文。
+
+## 超長內文
+
+![banner](${solidImage(CONTENT_IMAGE)})
+
+${LONG_BODY}
+`;
+
+/** 結尾頁 Markdown 表達不了，走 frontmatter */
+export const CTA: Partial<CtaSlide> = {
+  subhead: "分享給你的朋友吧！",
+  headline: "這篇貼文對你有幫助嗎？",
+  stats: ["560", "204", "427", "318"],
+  imageUrl: solidImage(CTA_IMAGE),
 };
+
+/**
+ * 這篇貼文會被解析成的頁面。id 是 parseMarkdown 依順序給的（p1、p2……），
+ * 所以測試要指某一張時用 SLIDES[n].id，不要寫死。
+ */
+export const SLIDES = parseMarkdown(BODY, CTA);
+
+export const TITLE = "版型驗證";
+export const HANDLE = "@leo.web.dev";
+export const TIMESTAMP = "3 min ago";

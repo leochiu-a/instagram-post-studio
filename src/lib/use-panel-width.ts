@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 /**
  * 面板寬度是「這台螢幕好不好用」的偏好，不是貼文的屬性，
- * 所以留在 localStorage、不進 Supabase —— 換機器不需要跟著跑。
+ * 所以留在 localStorage、不進貼文檔案 —— 換機器不需要跟著跑。
  */
 const STORAGE_KEY = "ig-post-studio:panel-width";
 

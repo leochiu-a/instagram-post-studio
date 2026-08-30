@@ -8,37 +8,56 @@ pnpm check     # oxfmt --check + oxlint + tsc --noEmit
 pnpm test:e2e  # headless 驗證匯出結果（自己起 dev server）
 ```
 
-## 設定 Supabase
+## 貼文存在哪
 
-貼文存在 Supabase Postgres、圖片存在 Supabase Storage，所以跑之前要先接上一個專案。
+一篇貼文就是 `content/posts/` 底下的一個 `.md` 檔，圖片是 `public/post-images/<檔名>/`
+底下的 WebP。沒有資料庫、不用設定，`pnpm dev` 起來就能用；整個資料夾可以直接進版控。
 
-### 本機（開發與跑測試用這個）
-
-```bash
-brew install supabase/tap/supabase
-supabase start      # 需要 Docker，第一次會拉 image
-supabase status     # 再看一次 API URL 與 anon key
+```
+content/posts/vite-plus.md          ← 這一篇的全部內容
+public/post-images/vite-plus/*.webp ← 這一篇用到的圖
 ```
 
-`supabase start` 會自動套用 [`supabase/migrations/`](supabase/migrations/) 底下的 migration。
-把印出來的 `API_URL` 與 `ANON_KEY` 填進 `.env.local`（`cp .env.example .env.local`）。
-改了 migration 之後用 `supabase db reset` 重跑一次。
+檔名在建立時由標題轉出來（中文保留），之後改標題**不會**改檔名 ——
+網址與圖片資料夾都掛在它身上，重新命名等於把每一張圖的路徑弄丟。
 
-### 雲端
+檔案長這樣：
 
-1. 在 [supabase.com](https://supabase.com) 開一個專案。
-2. 把 [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) 整份貼到
-   Dashboard 的 SQL Editor 執行 —— 它會建 `posts` 表、`post-images` bucket、RLS policy
-   與 `anon` 的表權限（policy 對了但少了 grant 會是 `permission denied for table posts`）。
-3. `cp .env.example .env.local`，填入 Project Settings → API 的 URL 與 anon key。
+```md
+---
+title: "Vite+ 來了，前端工具鏈的全面進化"
+handle: "@leo.web.dev"
+timestamp: "3 min ago"
+theme: "dark"
+created: "2026-08-30T12:00:00.000Z"
+cta:
+  subhead: "分享給你的朋友吧！"
+  headline: "這篇貼文對你有幫助嗎？"
+  stats: ["560", "204", "427", "318"]
+  image: ""
+---
 
-> ⚠️ **目前還沒有 Auth**，policy 是「拿到 anon key 的人都能讀寫所有貼文」。
-> 也就是說這份設定只適合自己用或內部使用；要開給多人前必須先接上 Supabase Auth，
-> 把 policy 換成 `owner = auth.uid()` 的版本。
+# Vite+ 來了，前端工具鏈的全面進化
 
-編輯是**先改畫面、再延後 600ms 合併寫回**（見 [`src/lib/post-store.ts`](src/lib/post-store.ts)）：
-每打一個字送一次 request 會打爆 API，等 round-trip 回來才更新畫面則會卡住輸入。
-分頁切到背景時會把還沒送出的編輯補送，所以不會掉最後幾個字。
+![banner](/post-images/vite-plus/2f1c….webp)
+
+## 一個工具，取代全部
+```
+
+frontmatter 只放 Markdown 表達不了的東西：帳號、配色，以及結尾 CTA 頁的那幾個欄位。
+**頁面本身不存** —— 讀檔時用 [`parseMarkdown`](src/lib/markdown.ts) 現算，所以不會有
+「檔案寫著 A、另一份快取寫著 B」這種對不起來的狀況。
+
+讀寫走三個 route handler（[`src/app/api/posts`](src/app/api/posts)），實作在
+[`post-files.ts`](src/lib/post-files.ts)：每個函式只收 slug 或檔名、而且都先過格式檢查，
+所以 request 帶什麼路徑進來都走不出上面那兩個資料夾。
+
+編輯是**先改畫面、再延後 600ms 合併存檔**（見 [`src/lib/post-store.ts`](src/lib/post-store.ts)）：
+每打一個字寫一次檔會讓 dev server 一直重讀，等 round-trip 回來才更新畫面則會卡住輸入。
+分頁切到背景時會把還沒送出的編輯用 `keepalive` 補送，所以不會掉最後幾個字。
+
+> 這是本機工具，跑的是 `next dev`。`next build` 只會收進**建置當下**已經存在的
+> `public/`，所以 `pnpm start` 之後新上傳的圖不會被服務到。
 
 ## 版型來源
 
@@ -64,24 +83,29 @@ supabase status     # 再看一次 API URL 與 anon key
 
 ## Markdown 語法
 
-| 寫法                       | 結果                           |
-| -------------------------- | ------------------------------ |
-| `# 標題`                   | 封面                           |
-| `## 標題`                  | 一張內頁，頁碼自動編號 01、02… |
-| `![](網址)`                | 該頁的圖片                     |
-| `- 項目`                   | 項目符號                       |
-| `**粗體**`、`` `程式碼` `` | 套用強調色                     |
+| 寫法                       | 結果                                      |
+| -------------------------- | ----------------------------------------- |
+| `# 標題`                   | 封面                                      |
+| `## 標題`                  | 一張內頁，頁碼自動編號 01、02…            |
+| `![版位](網址)`            | 該頁的圖片，版位是 banner / square / none |
+| `- 項目`                   | 項目符號                                  |
+| `**粗體**`、`` `程式碼` `` | 套用強調色                                |
 
-結尾 CTA 頁會自動補上。兩種編輯模式共用同一份頁面資料：Markdown 分頁按「套用到頁面」會
-**重建**所有頁面，逐頁模式則直接改單頁；「用目前頁面覆蓋草稿」可以把頁面倒回 Markdown。
+圖片版位寫在 alt 裡。alt 本來就空著沒用，拿它裝版位就不必為了一個列舉值多開一個
+frontmatter 欄位——版位跟著圖走，手動改 md 的人也看得懂。認不得的 alt（例如
+`![螢幕截圖](…)`）當成 banner，不是錯誤。
+
+結尾 CTA 頁會自動補上。兩種編輯模式是同一份資料的兩個投影：停止輸入後 Markdown 會
+自動解析成頁面，逐頁的改動也會即時序列化回這份 Markdown——而那份 Markdown 就是磁碟上
+那個檔案的正文。
 
 ## 匯出
 
 用 [modern-screenshot](https://github.com/qq15725/modern-screenshot) 直接把 DOM 畫成 PNG，
 所以版型元件永遠以 1080×1350 的真實尺寸渲染，預覽的縮放交給外層 `transform`。
 
-- 圖片請**上傳本機檔案**，會進 `post-images` bucket，欄位存的是公開網址。
-  這個 bucket 是公開讀取的，有 CORS 標頭，匯出讀得到；貼上其他站的網址則可能因 CORS 失敗。
+- 圖片請**上傳本機檔案**，會轉成 WebP 寫進 `public/post-images/`，欄位存的是相對路徑。
+  同源所以匯出讀得到；貼上其他站的網址則可能因 CORS 失敗。
 - 瀏覽器要有真實使用者點擊才會存檔，程式化觸發的下載會被丟掉。
 
 ## 驗證
@@ -89,15 +113,15 @@ supabase status     # 再看一次 API URL 與 anon key
 `pnpm test:e2e` 用 Playwright 在 headless Chromium 裡跑完整流程，不會碰到你平常用的瀏覽器，
 也不會彈出系統的存檔對話框（Playwright 自己接下 download 事件）。
 
-測試會直接對 `.env.local` 指到的那個 Supabase 專案讀寫，所以**別把它指到有真實資料的專案**。
-每個 test 用自己的 uuid 建貼文、收尾只刪自己那幾列（見 [`tests/db.ts`](tests/db.ts)）——
-刻意不清空整張表，也因此測試不能假設「清單上只有我這一篇」。
+測試會直接在 `content/posts/` 建檔案，而那裡通常也躺著你真正在寫的貼文，所以**絕對不清空
+整個資料夾**：每個 test 用自己的專屬 tag、收尾只刪檔名或標題帶著那個 tag 的檔案
+（見 [`tests/posts.ts`](tests/posts.ts)）——也因此測試不能假設「清單上只有我這一篇」。
 
 驗的東西：
 
 - 四種頁型的圖片都落在量出來的版位上，且不越過 SWIPE 膠囊（結尾頁沒有膠囊，不套這條）
 - 程式碼 chip 的底色、文字色、圓角正確，且沒有撐開行高
-- 編輯後重新整理，內容還在
+- 編輯後重新整理，內容還在（真的落到 `.md` 檔裡，不是只活在記憶體）
 - 匯出的 ZIP 有五張 1080×1350 的 PNG，並直接對 PNG **取樣像素**確認 chip 與圖片
   真的被畫進去了 —— 光看預覽的 DOM 不足以證明 modern-screenshot 有正確處理
 

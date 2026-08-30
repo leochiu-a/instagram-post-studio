@@ -30,15 +30,20 @@ export type Slide =
       imageUrl: string;
     };
 
+/** 結尾 CTA 頁。Markdown 表達不了它，序列化時走 frontmatter（見 post-file.ts）。 */
+export type CtaSlide = Extract<Slide, { kind: "cta" }>;
+
 export type Post = {
+  /** 檔名（不含 .md），同時是網址上的 slug。建立時決定，之後改標題也不會變。 */
   id: string;
   /** 清單上顯示的名稱，也決定匯出的檔名 */
   title: string;
   handle: string;
   timestamp: string;
   theme: ThemeName;
+  /** 由 draft 解析出來的頁面（見 markdown.ts）。存檔時不寫進去，讀檔時再算一次。 */
   slides: Slide[];
-  /** 這篇自己的 Markdown 草稿 */
+  /** 這篇的 Markdown 正文 —— 也就是磁碟上那個檔案 frontmatter 底下的全部內容 */
   draft: string;
 };
 

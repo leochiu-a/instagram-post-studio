@@ -1,5 +1,6 @@
-import { expect, test } from "./db";
+import { expect, test } from "./posts";
 import { SLIDES } from "./fixture";
+import type { Slide } from "../src/lib/types";
 
 /**
  * 拖曳排序。dnd-kit 靠真實的 pointer 事件序列驅動，所以 steps 不能省 ——
@@ -19,25 +20,32 @@ async function dragThumb(page: import("@playwright/test").Page, from: number, to
   await page.mouse.up();
 }
 
-test("拖曳縮圖可以改頁面順序，而且寫回資料庫", async ({ page, app }) => {
+/**
+ * 頁面的 id 是解析 Markdown 時依順序給的（p1、p2……），所以搬動之後
+ * 「第三張的 id」永遠是 p3 —— 驗 id 等於什麼都沒驗。要驗的是內容的排列。
+ */
+const label = (slide: Slide) =>
+  slide.kind === "cover" ? slide.title : slide.kind === "content" ? slide.heading : "CTA";
+
+test("拖曳縮圖可以改頁面順序，而且寫回檔案", async ({ page, app }) => {
   const post = await app.seed();
   await page.goto(`/post/${post.id}`);
   await expect(page.locator(`[data-slide-id="${SLIDES[0].id}"]`)).toBeVisible();
 
-  const ids = () => app.read(post.id).then((row) => row?.slides.map((slide) => slide.id) ?? []);
-  const before = post.slides.map((slide) => slide.id);
-  expect(await ids()).toEqual(before);
+  const order = () => app.read(post.id).then((saved) => (saved?.slides ?? []).map(label));
+  const before = post.slides.map(label);
+  expect(await order()).toEqual(before);
 
   // 第一張拖到第三張的位置
   await dragThumb(page, 1, 3);
 
   const expected = [before[1], before[2], before[0], before[3], before[4]];
-  await expect.poll(ids).toEqual(expected);
+  await expect.poll(order).toEqual(expected);
 
   // 重新整理後順序還在，才算真的存進去而不是只有畫面動了
   await page.reload();
   await expect(page.locator("[data-slide-id]").first()).toBeVisible();
-  expect(await ids()).toEqual(expected);
+  expect(await order()).toEqual(expected);
 });
 
 test("內頁的頁碼在排序後重新編號，跟著新順序走", async ({ page, app }) => {
@@ -52,8 +60,8 @@ test("內頁的頁碼在排序後重新編號，跟著新順序走", async ({ pa
   const numbering = () =>
     app
       .read(post.id)
-      .then((row) =>
-        (row?.slides ?? [])
+      .then((saved) =>
+        (saved?.slides ?? [])
           .filter((slide) => slide.kind === "content")
           .map((slide) => (slide.kind === "content" ? `${slide.badge} ${slide.heading}` : "")),
       );

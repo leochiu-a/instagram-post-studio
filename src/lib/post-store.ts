@@ -2,38 +2,24 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { parseMarkdown, renumber, toMarkdown } from "./markdown";
-import { removeImages, removePostImages } from "./image-upload";
-import { supabase } from "./supabase";
+import { request } from "./api-client";
+import { removeImages } from "./image-upload";
+import { renumber, toMarkdown } from "./markdown";
 import type { Post, Slide } from "./types";
 
 export interface PostCollection {
   posts: Record<string, Post>;
   /** 清單的顯示順序，最新的在最前面 */
   order: string[];
-  /** 第一次從 Supabase 讀完了沒。false 的時候不能顯示「找不到貼文」 */
+  /** 第一次讀完 content/posts 了沒。false 的時候不能顯示「找不到貼文」 */
   loaded: boolean;
-}
-
-/** 新貼文從一張封面起手，清單縮圖才不會是結尾 CTA */
-export function createPost(title = "未命名貼文", draft = `# ${title}\n`): Post {
-  return {
-    id: crypto.randomUUID(),
-    title,
-    handle: "@leo.web.dev",
-    timestamp: "3 min ago",
-    theme: "dark",
-    slides: parseMarkdown(draft),
-    draft,
-  };
 }
 
 /**
  * 清單頁與編輯器是兩個路由，卻要看同一份資料，所以把集合放在模組層，
- * 用 useSyncExternalStore 訂閱 —— 元件各自持有 state 會讓兩邊各自對 Supabase
- * 寫入時互相蓋掉。
+ * 用 useSyncExternalStore 訂閱 —— 元件各自持有 state 會讓兩邊各自存檔時互相蓋掉。
  *
- * 寫入是「先改記憶體、再非同步送出」：編輯器每打一個字都會呼叫 update()，
+ * 寫入是「先改記憶體、再非同步存檔」：編輯器每打一個字都會呼叫 update()，
  * 等 round-trip 回來才更新畫面會直接卡住輸入。
  */
 let collection: PostCollection = { posts: {}, order: [], loaded: false };
@@ -48,8 +34,8 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-// ── 寫回 Supabase ─────────────────────────────────────────────────────────
-// 每個 keystroke 送一次 request 會打爆 API，所以累積到 dirty 裡延後合併送出。
+// ── 寫回磁碟 ──────────────────────────────────────────────────────────────
+// 每個 keystroke 存一次檔會讓 dev server 一直重讀，所以累積到 dirty 裡延後合併送出。
 
 const FLUSH_DELAY = 600;
 const dirty = new Set<string>();
@@ -60,26 +46,32 @@ function schedule() {
   flushTimer = setTimeout(() => void flush(), FLUSH_DELAY);
 }
 
-async function flush() {
+async function flush(keepalive = false) {
   flushTimer = null;
   const ids = [...dirty];
   dirty.clear();
 
-  const rows = ids
-    .map((id) => collection.posts[id])
-    .filter((post): post is Post => Boolean(post))
-    .map((post) => ({ ...post, updated_at: new Date().toISOString() }));
-  if (rows.length === 0) return;
-
-  const { error } = await supabase.from("posts").upsert(rows);
-  if (error) {
-    // 留在 dirty 裡，下一次編輯或關閉頁面時會再試一次
-    for (const id of ids) dirty.add(id);
-    toast.error("儲存失敗", { description: error.message });
-  }
+  await Promise.all(
+    ids.map(async (id) => {
+      const post = collection.posts[id];
+      if (!post) return;
+      try {
+        await request(`/api/posts/${encodeURIComponent(id)}`, {
+          method: "PUT",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ post }),
+          keepalive,
+        });
+      } catch (error) {
+        // 留在 dirty 裡，下一次編輯或關閉頁面時會再試一次
+        dirty.add(id);
+        toast.error("存檔失敗", { description: (error as Error).message });
+      }
+    }),
+  );
 }
 
-/** 記憶體先更新、畫面先動，再排程寫回 */
+/** 記憶體先更新、畫面先動，再排程存檔 */
 function commit(next: Omit<PostCollection, "loaded">, changed?: string) {
   collection = { ...next, loaded: collection.loaded };
   if (changed) {
@@ -97,35 +89,26 @@ async function load() {
   if (loading) return;
   loading = true;
 
-  const { data, error } = await supabase
-    .from("posts")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    toast.error("讀取貼文失敗", { description: error.message });
+  try {
+    const data = await request<Post[]>("/api/posts");
+    const posts: Record<string, Post> = {};
+    for (const post of data) posts[post.id] = post;
+    collection = { posts, order: data.map((post) => post.id), loaded: true };
+  } catch (error) {
+    toast.error("讀取貼文失敗", { description: (error as Error).message });
     // 照樣標成 loaded：否則編輯器會永遠停在載入中，連錯誤都看不到
     collection = { ...collection, loaded: true };
-    emit();
-    return;
   }
-
-  const posts: Record<string, Post> = {};
-  for (const row of data) {
-    // created_at 只用來排序，不進 Post
-    const { created_at: _createdAt, ...post } = row;
-    posts[post.id] = post;
-  }
-  collection = { posts, order: data.map((row) => row.id), loaded: true };
   emit();
 }
 
 /**
- * 關掉分頁前把還沒送出的編輯補送出去。debounce 的代價就是最後幾百毫秒的
- * 輸入還在記憶體裡，沒有這一步會掉字。
+ * 關掉分頁前把還沒存的編輯補送出去。debounce 的代價就是最後幾百毫秒的
+ * 輸入還在記憶體裡，沒有這一步會掉字 —— keepalive 讓 request 在分頁
+ * 關掉之後仍然送得完。
  */
 function flushOnHide() {
-  if (document.visibilityState === "hidden" && dirty.size > 0) void flush();
+  if (document.visibilityState === "hidden" && dirty.size > 0) void flush(true);
 }
 
 function useCollection() {
@@ -150,15 +133,20 @@ export function useHydrated() {
 export function usePostList() {
   const { posts, order } = useCollection();
 
-  const addPost = useCallback((title?: string, draft?: string) => {
-    const post = createPost(title, draft);
-    commit(
-      {
-        posts: { ...collection.posts, [post.id]: post },
-        order: [post.id, ...collection.order],
-      },
-      post.id,
-    );
+  /**
+   * 檔名由 server 決定（標題轉 slug、撞名加序號），所以新增是等 round-trip
+   * 回來才拿得到 id —— 這是這裡唯一一個不能樂觀更新的操作。
+   */
+  const addPost = useCallback(async (title = "未命名貼文", draft?: string) => {
+    const post = await request<Post>("/api/posts", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title, draft }),
+    });
+    commit({
+      posts: { ...collection.posts, [post.id]: post },
+      order: [post.id, ...collection.order],
+    });
     return post.id;
   }, []);
 
@@ -171,14 +159,10 @@ export function usePostList() {
       order: collection.order.filter((each) => each !== id),
     });
 
-    void (async () => {
-      const { error } = await supabase.from("posts").delete().eq("id", id);
-      if (error) {
-        toast.error("刪除失敗", { description: error.message });
-        return;
-      }
-      await removePostImages(id);
-    })();
+    // 檔案與它整個圖片資料夾都由 server 收掉
+    void request(`/api/posts/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(
+      (error: Error) => toast.error("刪除失敗", { description: error.message }),
+    );
   }, []);
 
   return {
@@ -209,7 +193,8 @@ export function usePost(id: string) {
 
   /**
    * 頁面一有變動就重新編號，內頁的頁碼永遠連續。逐頁改動時順便把 Markdown
-   * 草稿重新生成，兩種編輯模式因此不用手動同步。
+   * 草稿重新生成 —— 草稿就是磁碟上那份檔案的正文，所以這一步不只是同步兩個
+   * 編輯模式，它決定了存進去的是什麼。
    *
    * 但 Markdown 面板自己套用時要傳 syncDraft: false：那條路的草稿就是使用者
    * 正在打的字，回寫等於把 textarea 的內容換成重新序列化的版本 —— 游標會被
@@ -229,7 +214,7 @@ export function usePost(id: string) {
 
       const kept = new Set(slides.map((slide) => slide.imageUrl));
       const orphans = before.map((slide) => slide.imageUrl).filter((url) => url && !kept.has(url));
-      if (orphans.length > 0) void removeImages(orphans);
+      if (orphans.length > 0) void removeImages(id, orphans);
     },
     [update, id],
   );

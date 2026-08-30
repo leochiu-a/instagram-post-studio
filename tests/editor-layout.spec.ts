@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./db";
-import { POST } from "./fixture";
+import { expect, test } from "./posts";
+import { SLIDES } from "./fixture";
 
 /** 量各欄的寬度、捲動範圍，以及第一張預覽實際被畫成多大 */
 const measure = () =>
@@ -105,7 +105,7 @@ test("頁面列一直開著，而且是讓出高度不是蓋在畫布上", async
   // 縮圖是同一個 SlideCard 再畫一次。匯出靠 data-slide-id 找節點、而
   // querySelector 只會拿第一個 —— 縮圖沒標 decorative 的話就會匯出到那張 52px 的。
   expect(await page.locator("[data-slide-id]").count(), "一張只能有一個匯出節點").toBe(
-    POST.slides.length,
+    SLIDES.length,
   );
 });
 

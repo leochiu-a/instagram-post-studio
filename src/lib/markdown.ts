@@ -1,4 +1,4 @@
-import { newId, type Slide } from "./types";
+import { newId, type CtaSlide, type ImageShape, type Slide } from "./types";
 
 const CTA_DEFAULTS = {
   subhead: "分享給你的朋友吧！",
@@ -7,22 +7,41 @@ const CTA_DEFAULTS = {
   imageUrl: "",
 };
 
-export const makeCtaSlide = (id = newId()): Slide => ({
+/**
+ * overrides 是逐欄位套的，不是整個 spread 進來 —— frontmatter 少一個欄位時
+ * 傳進來的是 undefined，spread 會拿它蓋掉預設值，結尾頁就會少掉那四個數字。
+ */
+export const makeCtaSlide = (id = newId(), overrides?: Partial<CtaSlide>): CtaSlide => ({
   id,
   kind: "cta",
-  ...CTA_DEFAULTS,
+  subhead: overrides?.subhead ?? CTA_DEFAULTS.subhead,
+  headline: overrides?.headline ?? CTA_DEFAULTS.headline,
+  stats: overrides?.stats ?? CTA_DEFAULTS.stats,
+  imageUrl: overrides?.imageUrl ?? CTA_DEFAULTS.imageUrl,
 });
 
-const IMAGE_LINE = /^!\[[^\]]*\]\(([^)]+)\)\s*$/;
+const IMAGE_LINE = /^!\[([^\]]*)\]\(([^)]+)\)\s*$/;
+
+const SHAPES: readonly ImageShape[] = ["banner", "square", "none"];
+
+/**
+ * 版位寫在圖片的 alt 裡：`![square](url)`。
+ *
+ * alt 本來就空著沒用，拿它裝版位就不必為了一個列舉值多開一個 frontmatter
+ * 欄位 —— 版位跟著圖走，手動改 md 的人也看得懂在寫什麼。認不得的 alt
+ * （例如從別處貼來的 `![螢幕截圖](url)`）當成橫幅，不是錯誤。
+ */
+const shapeFromAlt = (alt: string): ImageShape =>
+  SHAPES.find((shape) => shape === alt.trim()) ?? "banner";
 
 /**
  * 把一份 Markdown 切成貼文頁面：
- *   `# 標題`   → 封面
- *   `## 標題`  → 一張內頁（頁碼自動編號 01、02……）
- *   `![](url)` → 該頁的圖片
- * 最後自動補一張結尾 CTA 頁。
+ *   `# 標題`         → 封面
+ *   `## 標題`        → 一張內頁（頁碼自動編號 01、02……）
+ *   `![版位](url)`   → 該頁的圖片，alt 是 banner / square / none
+ * 最後自動補一張結尾 CTA 頁 —— 它的欄位 Markdown 表達不了，所以由 cta 帶進來。
  */
-export function parseMarkdown(source: string): Slide[] {
+export function parseMarkdown(source: string, cta?: Partial<CtaSlide>): Slide[] {
   const slides: Slide[] = [];
   // 解析出來的 id 只跟內容順序有關，伺服器與瀏覽器算出的結果必然一致
   let n = 0;
@@ -72,7 +91,10 @@ export function parseMarkdown(source: string): Slide[] {
 
     const img = IMAGE_LINE.exec(line);
     if (img && current) {
-      if (current.kind === "cover" || current.kind === "content") current.imageUrl = img[1].trim();
+      if (current.kind === "cover" || current.kind === "content") {
+        current.imageUrl = img[2].trim();
+        current.imageShape = shapeFromAlt(img[1]);
+      }
       continue;
     }
 
@@ -80,25 +102,33 @@ export function parseMarkdown(source: string): Slide[] {
   }
   flush();
 
-  slides.push(makeCtaSlide(nextId()));
+  slides.push(makeCtaSlide(nextId(), cta));
   return slides;
 }
 
-/** 反向：把目前的頁面倒回 Markdown，方便在兩種編輯模式之間來回。 */
+/**
+ * 反向：把目前的頁面倒回 Markdown。這是存檔時真正落到磁碟上的內容，
+ * 所以 parseMarkdown 讀得回來的東西這裡都要寫出去 —— 版位就是靠 alt 帶的。
+ * CTA 頁不在這裡，它走 frontmatter（見 post-file.ts）。
+ */
 export function toMarkdown(slides: Slide[]): string {
   const chunks: string[] = [];
   for (const slide of slides) {
     if (slide.kind === "cover") {
       chunks.push(`# ${slide.title}`);
-      if (slide.imageUrl) chunks.push(`![cover](${slide.imageUrl})`);
+      if (slide.imageUrl) chunks.push(`![${slide.imageShape}](${slide.imageUrl})`);
     } else if (slide.kind === "content") {
       chunks.push(`## ${slide.heading}`);
-      if (slide.imageUrl) chunks.push(`![](${slide.imageUrl})`);
+      if (slide.imageUrl) chunks.push(`![${slide.imageShape}](${slide.imageUrl})`);
       if (slide.body) chunks.push(slide.body);
     }
   }
   return chunks.join("\n\n") + "\n";
 }
+
+/** 這篇的結尾 CTA 頁。存檔時要把它從頁面裡撈出來寫進 frontmatter。 */
+export const ctaOf = (slides: Slide[]): CtaSlide | undefined =>
+  slides.find((slide): slide is CtaSlide => slide.kind === "cta");
 
 /** 內頁重新編號，刪頁或搬動順序之後呼叫。 */
 export function renumber(slides: Slide[]): Slide[] {

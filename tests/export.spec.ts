@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import JSZip from "jszip";
-import { expect, test } from "./db";
+import { expect, test } from "./posts";
 import { CONTENT_IMAGE, COVER_IMAGE, CTA_IMAGE, SLIDES } from "./fixture";
 import { canvasRect, hexToRgb, isClose, pngSize, samplePixels } from "./helpers";
 import { CANVAS, METRICS, PALETTES } from "../src/lib/theme";
@@ -19,28 +19,29 @@ test.beforeEach(async ({ page, app }) => {
 
 test("每張頁面的圖片都落在版位上，且不會越過 SWIPE 膠囊", async ({ page }) => {
   const expected = [
-    { id: "t1", width: METRICS.image.banner.width, height: METRICS.image.banner.height },
-    { id: "t2", width: METRICS.contentWidth, height: METRICS.image.banner.height },
-    { id: "t3", width: METRICS.image.square.size, height: METRICS.image.square.size },
-    { id: "t4", width: METRICS.contentWidth, height: METRICS.image.banner.height },
-    { id: "t5", width: METRICS.cta.image.width, height: METRICS.cta.image.height },
+    { width: METRICS.image.banner.width, height: METRICS.image.banner.height },
+    { width: METRICS.contentWidth, height: METRICS.image.banner.height },
+    { width: METRICS.image.square.size, height: METRICS.image.square.size },
+    { width: METRICS.contentWidth, height: METRICS.image.banner.height },
+    { width: METRICS.cta.image.width, height: METRICS.cta.image.height },
   ];
 
-  for (const slot of expected) {
-    const rect = await canvasRect(page, slot.id, "img");
-    expect(rect, `頁面 ${slot.id} 應該要有圖片`).not.toBeNull();
+  for (const [index, slot] of expected.entries()) {
+    const id = SLIDES[index].id;
+    const rect = await canvasRect(page, id, "img");
+    expect(rect, `頁面 ${id} 應該要有圖片`).not.toBeNull();
     expect(rect!.width).toBeCloseTo(slot.width, 0);
     expect(rect!.height).toBeCloseTo(slot.height, 0);
     // 結尾頁沒有 SWIPE 膠囊，這條限制只套在封面與內頁
-    if (slot.id !== "t5") {
+    if (index < expected.length - 1) {
       expect(rect!.top + rect!.height).toBeLessThanOrEqual(SWIPE_TOP);
     }
   }
 });
 
 test("內文的程式碼渲染成原稿的淺色 chip，且不撐開行高", async ({ page }) => {
-  const chip = await page.evaluate(() => {
-    const card = document.querySelector<HTMLElement>('[data-slide-id="t2"]');
+  const chip = await page.evaluate((id) => {
+    const card = document.querySelector<HTMLElement>(`[data-slide-id="${id}"]`);
     const span = card?.querySelector<HTMLElement>('span[style*="border-radius"]');
     if (!card || !span) return null;
     const line = span.parentElement as HTMLElement;
@@ -67,7 +68,7 @@ test("內文的程式碼渲染成原稿的淺色 chip，且不撐開行高", asy
       inkBottomMargin: box.height / scale - (baseline + ink.actualBoundingBoxDescent),
       lineHeight: line.getBoundingClientRect().height / scale,
     };
-  });
+  }, SLIDES[1].id);
 
   expect(chip).not.toBeNull();
   expect(chip!.background).toBe("rgb(216, 226, 230)");
@@ -86,17 +87,18 @@ test("內文的程式碼渲染成原稿的淺色 chip，且不撐開行高", asy
 test("重新整理後內容還在", async ({ page, app }) => {
   await page.getByRole("button", { name: "設定" }).click();
   await page.getByLabel("帳號").fill("@changed.handle");
-  await expect(page.locator('[data-slide-id="t1"]')).toContainText("@changed.handle");
+  const cover = page.locator(`[data-slide-id="${SLIDES[0].id}"]`);
+  await expect(cover).toContainText("@changed.handle");
 
   // 等寫入真的落地再重新整理 —— 送出是 debounce 的，DOM 更新完還沒進資料庫
-  await expect.poll(() => app.read(postId).then((row) => row?.handle)).toBe("@changed.handle");
+  await expect.poll(() => app.read(postId).then((saved) => saved?.handle)).toBe("@changed.handle");
 
   await page.reload();
-  await expect(page.locator('[data-slide-id="t1"]')).toContainText("@changed.handle");
+  await expect(cover).toContainText("@changed.handle");
 });
 
 test("匯出的 ZIP 每張都是 1080×1350，且 chip 與圖片真的畫進 PNG", async ({ page }) => {
-  const chipRect = await canvasRect(page, "t2", 'span[style*="border-radius"]');
+  const chipRect = await canvasRect(page, SLIDES[1].id, 'span[style*="border-radius"]');
   expect(chipRect).not.toBeNull();
 
   const download = await Promise.race([
@@ -139,7 +141,7 @@ test("匯出的 ZIP 每張都是 1080×1350，且 chip 與圖片真的畫進 PNG
     "code chip 要出現在匯出的 PNG 裡",
   ).toBe(true);
 
-  const contentRect = await canvasRect(page, "t4", "img");
+  const contentRect = await canvasRect(page, SLIDES[3].id, "img");
   const [longBodyPixel] = await samplePixels(page, pages[3], [
     [
       Math.round(contentRect!.left + contentRect!.width / 2),
