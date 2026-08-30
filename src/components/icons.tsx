@@ -87,23 +87,19 @@ export function Bookmark({ className, style }: GlyphProps) {
   );
 }
 
-/** 結尾頁指向 icon 列的手繪箭頭 */
+/** 結尾頁指向 icon 列的手繪虛線箭頭 */
 export function CurvedArrow({ className, style }: GlyphProps) {
   return (
-    <svg viewBox="0 0 208 52" className={className} style={style} fill="none" aria-hidden>
+    <svg viewBox="0 0 100 198" className={className} style={style} fill="none" aria-hidden>
       <path
-        d="M4 44C34 12 92 2 158 14"
+        d="M11 3C2 12 0 28 2 52 4 62 14 82 25 89c15 7 25 4 35 6 8 2 21 21 22 35 2 18 3 30 4 46"
         stroke="currentColor"
-        strokeWidth="7"
+        strokeWidth="4"
         strokeLinecap="round"
+        strokeDasharray="11 7.5"
+        strokeDashoffset="3"
       />
-      <path
-        d="M136 4c10 4 18 7 24 10-7 4-13 9-18 16"
-        stroke="currentColor"
-        strokeWidth="7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M87 194.5 77.5 176 86 180.5 95 176Z" fill="currentColor" />
     </svg>
   );
 }

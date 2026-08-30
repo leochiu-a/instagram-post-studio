@@ -19,14 +19,21 @@ export const METRICS = {
 
   body: { top: 236.34, fontSize: 40, lineHeight: 1.55, letterSpacing: -0.006 },
 
-  coverTitle: { fontSize: 88, lineHeight: 1.5, letterSpacing: -0.011 },
+  /** 封面大標：top 是整個封面版塊的唯一調整鈕，圖片底邊會跟著它走 */
+  coverTitle: { top: 818, fontSize: 88, lineHeight: 1.5, letterSpacing: -0.011 },
 
   /** 內文與圖片之間的間距 */
   bodyImageGap: 48,
 
   /** 圖片版位共用同一組尺寸，封面與內頁都取用這裡 */
   image: {
-    banner: { top: 361.21, left: 71.12, width: 937.76, height: 278.61 },
+    /** 內頁橫幅：寬度是內容區滿寬，只有高度是固定的（錨在內容區底部） */
+    banner: { height: 278.61 },
+    /**
+     * 封面的橫幅：左右切齊大標（不是版面的安全邊界），高度隨圖片比例長，
+     * 底邊錨在大標上方一個 bodyImageGap 的位置，所以不管什麼比例的圖都不會被裁。
+     */
+    coverBanner: { left: 73.04, width: 935.84, maxHeight: 510 },
     square: { top: 301.46, left: 344.75, size: 390.5 },
   },
 
@@ -56,7 +63,7 @@ export const METRICS = {
     counts: { top: 940.36, fontSize: 32 },
     /** 四個 icon 的水平中心點 */
     columns: [285.7, 459.27, 623.46, 785.84],
-    arrow: { top: 666.66, left: 93.38, width: 207.1, height: 51.96, rotation: 70.05 },
+    arrow: { top: 592, left: 150, width: 100, height: 198 },
     /** 原稿沒有這個欄位：擺在互動膠囊下方的空白帶，不會壓到大標與 icon */
     image: { top: 1070, left: 71.12, width: 935.84, height: 200 },
   },

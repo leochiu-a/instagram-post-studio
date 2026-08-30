@@ -27,7 +27,7 @@ function ImageSlot({
     <img
       src={url}
       alt=""
-      style={{ position: "absolute", top, left, width, height, objectFit: "cover" }}
+      style={{ position: "absolute", top, left, width, height, objectFit: "contain" }}
     />
   );
 }
@@ -111,12 +111,24 @@ function CoverBody({
   slide: Extract<Slide, { kind: "cover" }>;
   palette: Palette;
 }) {
-  const banner = METRICS.image.banner;
+  const banner = METRICS.image.coverBanner;
   const square = METRICS.image.square;
   return (
     <>
       {slide.imageUrl && slide.imageShape === "banner" && (
-        <ImageSlot url={slide.imageUrl} {...banner} />
+        <img
+          src={slide.imageUrl}
+          alt=""
+          style={{
+            position: "absolute",
+            left: banner.left,
+            bottom: CANVAS.height - METRICS.coverTitle.top + METRICS.bodyImageGap,
+            width: banner.width,
+            height: "auto",
+            maxHeight: banner.maxHeight,
+            objectFit: "contain",
+          }}
+        />
       )}
       {slide.imageUrl && slide.imageShape === "square" && (
         <ImageSlot
@@ -130,7 +142,7 @@ function CoverBody({
       <div
         style={{
           position: "absolute",
-          top: 757.93,
+          top: METRICS.coverTitle.top,
           left: contentLeft,
           width: contentWidth,
           fontSize: METRICS.coverTitle.fontSize,
@@ -243,7 +255,7 @@ function ContentArea({
             left: 0,
             width: imageWidth,
             height: imageHeight,
-            objectFit: "cover",
+            objectFit: "contain",
           }}
         />
       )}
@@ -296,7 +308,6 @@ function CtaBody({ slide, palette }: { slide: Extract<Slide, { kind: "cta" }>; p
           left: c.arrow.left,
           width: c.arrow.width,
           height: c.arrow.height,
-          transform: `scaleY(-1) rotate(${c.arrow.rotation}deg)`,
           color: palette.arrow,
         }}
       />

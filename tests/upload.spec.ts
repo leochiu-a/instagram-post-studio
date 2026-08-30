@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import JSZip from "jszip";
 import { expect, test } from "./posts";
 import { SLIDES } from "./fixture";
-import { hexToRgb, isClose, pngSize, samplePixels, solidPng } from "./helpers";
-import { CANVAS, METRICS } from "../src/lib/theme";
+import { canvasRect, hexToRgb, isClose, pngSize, samplePixels, solidPng } from "./helpers";
+import { CANVAS } from "../src/lib/theme";
 
 /** 跟版型裡任何顏色都不撞的顏色，取樣才不會誤判 */
 const UPLOAD_COLOR = "#ff00ff";
@@ -55,10 +55,11 @@ test("上傳的圖落到 public/post-images，相對路徑匯得出來", async (
 
   expect(pngSize(cover)).toEqual({ width: CANVAS.width, height: CANVAS.height });
 
-  // 封面橫幅版位的中心：匯出時沒把圖抓回來的話，這裡會是背景色
-  const banner = METRICS.image.banner;
+  // 封面橫幅版位的中心：匯出時沒把圖抓回來的話，這裡會是背景色。
+  // 座標從 DOM 量出來，因為封面圖的高度是它自己的比例決定的
+  const slot = await canvasRect(page, SLIDES[0].id, "img");
   const [pixel] = await samplePixels(page, cover, [
-    [banner.left + banner.width / 2, banner.top + banner.height / 2],
+    [Math.round(slot!.left + slot!.width / 2), Math.round(slot!.top + slot!.height / 2)],
   ]);
   expect(
     isClose(pixel, hexToRgb(UPLOAD_COLOR)),

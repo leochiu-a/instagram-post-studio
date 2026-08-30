@@ -18,25 +18,42 @@ test.beforeEach(async ({ page, app }) => {
 });
 
 test("每張頁面的圖片都落在版位上，且不會越過 SWIPE 膠囊", async ({ page }) => {
+  /*
+    封面的橫幅只有寬度是固定的：底邊錨在大標上方一個間距，往上長到圖片自己的
+    比例為止（最高 maxHeight），所以什麼比例的圖都不會被裁。驗的是這三件事，
+    不是一個寫死的高度。
+  */
+  const cover = METRICS.image.coverBanner;
+  const coverRect = await canvasRect(page, SLIDES[0].id, "img");
+  expect(coverRect, "封面應該要有圖片").not.toBeNull();
+  expect(coverRect!.width).toBeCloseTo(cover.width, 0);
+  expect(coverRect!.height).toBeLessThanOrEqual(cover.maxHeight);
+  // 測試圖是 600×300，等比放到版位寬度就是一半高
+  expect(coverRect!.height).toBeCloseTo(cover.width / 2, 0);
+  expect(coverRect!.top + coverRect!.height, "底邊要停在大標上方一個 bodyImageGap").toBeCloseTo(
+    METRICS.coverTitle.top - METRICS.bodyImageGap,
+    0,
+  );
+
   const expected = [
-    { width: METRICS.image.banner.width, height: METRICS.image.banner.height },
     { width: METRICS.contentWidth, height: METRICS.image.banner.height },
     { width: METRICS.image.square.size, height: METRICS.image.square.size },
     { width: METRICS.contentWidth, height: METRICS.image.banner.height },
     { width: METRICS.cta.image.width, height: METRICS.cta.image.height },
   ];
 
-  for (const [index, slot] of expected.entries()) {
-    const id = SLIDES[index].id;
+  for (const [nth, slot] of expected.entries()) {
+    const id = SLIDES[nth + 1].id;
     const rect = await canvasRect(page, id, "img");
     expect(rect, `頁面 ${id} 應該要有圖片`).not.toBeNull();
     expect(rect!.width).toBeCloseTo(slot.width, 0);
     expect(rect!.height).toBeCloseTo(slot.height, 0);
     // 結尾頁沒有 SWIPE 膠囊，這條限制只套在封面與內頁
-    if (index < expected.length - 1) {
+    if (nth < expected.length - 1) {
       expect(rect!.top + rect!.height).toBeLessThanOrEqual(SWIPE_TOP);
     }
   }
+  expect(coverRect!.top + coverRect!.height).toBeLessThanOrEqual(SWIPE_TOP);
 });
 
 test("內文的程式碼渲染成原稿的淺色 chip，且不撐開行高", async ({ page }) => {
@@ -121,13 +138,14 @@ test("匯出的 ZIP 每張都是 1080×1350，且 chip 與圖片真的畫進 PNG
     });
   }
 
-  const banner = METRICS.image.banner;
-  const bannerCentre: [number, number] = [
-    banner.left + banner.width / 2,
-    banner.top + banner.height / 2,
-  ];
-
-  const [coverPixel] = await samplePixels(page, pages[0], [bannerCentre]);
+  // 取樣點從量到的版位算，不寫死座標 —— 封面的高度本來就是圖片比例決定的
+  const coverImage = await canvasRect(page, SLIDES[0].id, "img");
+  const [coverPixel] = await samplePixels(page, pages[0], [
+    [
+      Math.round(coverImage!.left + coverImage!.width / 2),
+      Math.round(coverImage!.top + coverImage!.height / 2),
+    ],
+  ]);
   expect(isClose(coverPixel, hexToRgb(COVER_IMAGE)), "封面的圖片要出現在匯出的 PNG 裡").toBe(true);
 
   // chip 的上緣中央：在 chip 內部但在文字上方，不會取到字的筆畫
