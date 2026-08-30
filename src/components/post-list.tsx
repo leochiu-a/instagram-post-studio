@@ -3,7 +3,19 @@
 import { LayersIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { SlideCard } from "./slide-card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -50,8 +62,17 @@ function Cover({ post }: { post: Post }) {
 export function PostList() {
   const { posts, addPost, removePost } = usePostList();
   const hydrated = useHydrated();
+  /**
+   * 等待確認的那一篇。刪除會把 .md 跟它整個圖片資料夾一起收掉，沒有還原，
+   * 而按鈕就浮在封面上、跟「開啟」只差幾個像素 —— 這種手滑要攔下來。
+   *
+   * 對話框只有一個、放在清單外面：每張卡片各掛一個等於在 DOM 裡養 N 個
+   * 永遠關著的對話框。
+   */
+  const [pending, setPending] = useState<Post | null>(null);
   const router = useRouter();
-  const open = (id: string) => router.push(`/post/${id}`);
+  // 檔名由 server 決定，所以要等它回來才知道要跳去哪一篇
+  const open = (id: Promise<string>) => void id.then((slug) => router.push(`/post/${slug}`));
 
   return (
     <div className="flex min-h-full flex-col">
@@ -70,7 +91,7 @@ export function PostList() {
       </header>
 
       {!hydrated ? (
-        /* 貼文在 Supabase，第一次讀完之前不能顯示「還沒有貼文」—— 那是誤報 */
+        /* 貼文在 content/posts，第一次讀完之前不能顯示「還沒有貼文」—— 那是誤報 */
         <Empty className="flex-1 py-24">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -141,7 +162,7 @@ export function PostList() {
                 size="icon-sm"
                 aria-label={`刪除「${post.title}」`}
                 className="bg-background/85 text-muted-foreground hover:text-destructive absolute top-1.5 left-1.5 size-7 shadow-sm backdrop-blur-sm transition-opacity duration-150 focus-visible:opacity-100 md:size-6 md:opacity-0 md:group-hover:opacity-100"
-                onClick={() => removePost(post.id)}
+                onClick={() => setPending(post)}
               >
                 <Trash2Icon />
               </Button>
@@ -149,6 +170,37 @@ export function PostList() {
           ))}
         </ul>
       )}
+
+      <AlertDialog
+        open={pending !== null}
+        onOpenChange={(next) => {
+          if (!next) setPending(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-destructive/10 text-destructive">
+              <Trash2Icon />
+            </AlertDialogMedia>
+            <AlertDialogTitle>刪除「{pending?.title}」？</AlertDialogTitle>
+            <AlertDialogDescription>
+              這篇的 {pending?.slides.length} 張頁面與它用到的圖片都會從磁碟上刪掉，沒辦法還原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (pending) removePost(pending.id);
+                setPending(null);
+              }}
+            >
+              刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
