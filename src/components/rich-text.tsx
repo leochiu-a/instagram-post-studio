@@ -1,15 +1,27 @@
 // oxlint-disable react/no-array-index-key -- 這裡的 index 對應固定的版型欄位與逐行渲染，順序不會變
 import { CODE_CHIP_BOX, CODE_CHIP_RADIUS, type Palette } from "@/lib/theme";
 
-const INLINE = /(\*\*[^*]+\*\*|`[^`]+`)/g;
+/**
+ * 三種行內標記。**粗體** 一定要排在 *斜體* 前面 —— 交替順序就是比對順序，
+ * 反過來的話 `**字**` 會先被斜體那一段吃掉開頭的單顆星號。
+ */
+const INLINE = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
 
-/** 把一行文字裡的 **粗體** 與 `程式碼` 換成對應樣式的 span。 */
+/** 把一行文字裡的 **粗體**、*斜體* 與 `程式碼` 換成對應樣式的 span。 */
 function inline(text: string, palette: Palette) {
   return text.split(INLINE).map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
         <span key={i} style={{ fontWeight: 700, color: palette.accent }}>
           {part.slice(2, -2)}
+        </span>
+      );
+    }
+    if (part.startsWith("*") && part.endsWith("*")) {
+      // 斜體只改字形、不改顏色：強調色是粗體的訊號，兩個都上就分不出輕重
+      return (
+        <span key={i} style={{ fontStyle: "italic" }}>
+          {part.slice(1, -1)}
         </span>
       );
     }

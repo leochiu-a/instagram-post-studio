@@ -34,6 +34,8 @@ export const BODY = `# 封面大標測試
 
 這一行有 \`vp dev\` 這段程式碼，要出現淺色 chip。
 
+這一行有 *斜體* 與 **粗體**。
+
 ## 正方形版位
 
 ![square](${solidImage(CONTENT_IMAGE, 600, 600)})

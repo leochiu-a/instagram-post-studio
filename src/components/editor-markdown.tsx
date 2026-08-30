@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRightIcon } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { MarkdownInput } from "@/components/markdown-input";
 
 interface EditorMarkdownProps {
   value: string;
@@ -30,20 +30,27 @@ export function EditorMarkdown({ value, onChange }: EditorMarkdownProps) {
           <ChevronRightIcon className="size-3.5 transition-transform duration-150 group-open/syntax:rotate-90" />
           Markdown 語法
         </summary>
-        <p className="text-muted-foreground pt-2 pl-4.5 text-xs leading-relaxed">
-          <Syntax># 標題</Syntax> 為封面，<Syntax>## 標題</Syntax> 各切一張內頁（頁碼自動編），
-          <Syntax>![版位](網址)</Syntax> 放圖（版位是 <Syntax>banner</Syntax> /{" "}
-          <Syntax>square</Syntax> / <Syntax>none</Syntax>），<Syntax>- </Syntax> 是項目符號，
-          <Syntax>**粗體**</Syntax> 與 <Syntax>`程式碼`</Syntax> 會套用強調色。結尾 CTA
-          頁會自動補上。
-        </p>
+        <div className="text-muted-foreground space-y-2 pt-2 pl-4.5 text-xs leading-relaxed">
+          <p>
+            <Syntax># 標題</Syntax> 為封面，<Syntax>## 標題</Syntax> 各切一張內頁（頁碼自動編），
+            <Syntax>![版位](網址)</Syntax> 放圖（版位是 <Syntax>banner</Syntax> /{" "}
+            <Syntax>square</Syntax> / <Syntax>none</Syntax>），<Syntax>- </Syntax> 是項目符號。 結尾
+            CTA 頁會自動補上。
+          </p>
+          <p>
+            <Syntax>**粗體**</Syntax>（<Syntax>⌘B</Syntax>）套強調色、
+            <Syntax>*斜體*</Syntax>（<Syntax>⌘I</Syntax>）、
+            <Syntax>`程式碼`</Syntax>（<Syntax>⌘E</Syntax>）是 chip。
+            版型只認得這三種行內標記，而且互斥 —— 快捷鍵是「換掉」不是「疊上去」。
+          </p>
+        </div>
       </details>
 
-      <Textarea
+      <MarkdownInput
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        spellCheck={false}
-        className="min-h-64 flex-1 resize-none font-mono text-sm leading-relaxed"
+        onChange={onChange}
+        placeholder="# 封面標題"
+        className="min-h-64 flex-1"
       />
 
       {/*
