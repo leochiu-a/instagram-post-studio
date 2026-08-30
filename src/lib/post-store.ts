@@ -166,7 +166,10 @@ export function usePostList() {
     const rest = { ...collection.posts };
     delete rest[id];
     dirty.delete(id);
-    commit({ posts: rest, order: collection.order.filter((each) => each !== id) });
+    commit({
+      posts: rest,
+      order: collection.order.filter((each) => each !== id),
+    });
 
     void (async () => {
       const { error } = await supabase.from("posts").delete().eq("id", id);
@@ -205,19 +208,24 @@ export function usePost(id: string) {
   );
 
   /**
-   * 頁面一有變動就重新編號，內頁的頁碼永遠連續。同時把 Markdown 草稿重新
-   * 生成，讓兩種編輯模式不用手動同步 —— 逐頁是這裡唯一的寫入路徑，草稿
-   * 永遠是 slides 目前狀態的投影，不會各自漂移。
+   * 頁面一有變動就重新編號，內頁的頁碼永遠連續。逐頁改動時順便把 Markdown
+   * 草稿重新生成，兩種編輯模式因此不用手動同步。
+   *
+   * 但 Markdown 面板自己套用時要傳 syncDraft: false：那條路的草稿就是使用者
+   * 正在打的字，回寫等於把 textarea 的內容換成重新序列化的版本 —— 游標會被
+   * 踢到最後，還會順手改掉他寫的空行與符號。誰在編輯，誰就是 source of truth。
    *
    * 順便清掉沒人再引用的圖。所有動到 slides 的路徑都經過這裡 —— 換圖、
    * 移除圖、刪一整頁、Markdown 重新套用 —— 所以只要在這個關口比對前後兩份
    * 就夠了，不用在每個變動點各寫一次。
    */
   const setSlides = useCallback(
-    (slides: Slide[]) => {
+    (slides: Slide[], { syncDraft = true }: { syncDraft?: boolean } = {}) => {
       const before = collection.posts[id]?.slides ?? [];
       const renumbered = renumber(slides);
-      update({ slides: renumbered, draft: toMarkdown(renumbered) });
+      update(
+        syncDraft ? { slides: renumbered, draft: toMarkdown(renumbered) } : { slides: renumbered },
+      );
 
       const kept = new Set(slides.map((slide) => slide.imageUrl));
       const orphans = before.map((slide) => slide.imageUrl).filter((url) => url && !kept.has(url));

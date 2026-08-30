@@ -61,7 +61,10 @@ type PanelName = (typeof PANELS)[number]["value"];
 function scrollPreviewIntoView(id: string) {
   const node = document.querySelector(`[data-preview-slide="${id}"]`);
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  node?.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
+  node?.scrollIntoView({
+    block: "center",
+    behavior: reduced ? "auto" : "smooth",
+  });
 }
 
 /** 面板裡的區塊標題。刻意比欄位標籤還輕：它是分區，不是要讀的東西 */
@@ -84,13 +87,16 @@ export function PostEditor({ postId }: { postId: string }) {
 
   /**
    * 打字先只更新草稿本身，讓 Textarea 不卡頓；停下來一段時間後才真的解析
-   * 套用到逐頁 —— 逐頁每次改動又會把草稿重新生成一次（見 usePost.setSlides），
-   * 兩邊因此不用手動同步，也不會在使用者還在打字時被重排版打斷。
+   * 套用到逐頁。套用時不回寫草稿（syncDraft: false）—— 使用者手上那份就是
+   * 正本，重新序列化蓋回去會把游標踢到最後，也會改掉他刻意留的空行與符號。
    */
   const editDraft = (value: string) => {
     update({ draft: value });
     if (applyTimer.current) clearTimeout(applyTimer.current);
-    applyTimer.current = setTimeout(() => setSlides(parseMarkdown(value)), APPLY_DELAY);
+    applyTimer.current = setTimeout(
+      () => setSlides(parseMarkdown(value), { syncDraft: false }),
+      APPLY_DELAY,
+    );
   };
 
   // 換頁離開或整個編輯器卸載時，還沒套用的解析就放掉——不留著跨貼文亂套。
@@ -126,7 +132,10 @@ export function PostEditor({ postId }: { postId: string }) {
       await downloadAllAsZip(nodes, baseName, (done, total) =>
         toast.loading(`匯出中… ${done}/${total}`, { id }),
       );
-      toast.success(`已下載 ${nodes.length} 張`, { id, description: `${baseName}.zip` });
+      toast.success(`已下載 ${nodes.length} 張`, {
+        id,
+        description: `${baseName}.zip`,
+      });
     } catch (error) {
       toast.error("匯出失敗", { id, description: (error as Error).message });
     } finally {
