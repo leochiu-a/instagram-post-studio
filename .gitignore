@@ -49,3 +49,8 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# skills：手寫的 ig-post 進版控，裝來的第三方 skill 由 skills-lock.json 還原
+.agents/
+.claude/skills/*
+!.claude/skills/ig-post/
