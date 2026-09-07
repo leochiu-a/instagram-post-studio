@@ -44,17 +44,18 @@
 封面的 banner 不裁圖（`object-fit: contain` + 高度自適應），所以橫的直的都放得下，
 但直式圖會把高度吃到上限 510、把大標往下擠得很緊 —— 封面還是給橫幅比例的圖最穩。
 
-圖片請上傳本機檔案，會轉成 WebP 寫進 `public/post-images/<檔名>/` 並存相對路徑；
+從 UI 上傳的圖片會轉成 WebP 寫進 `public/post-images/<slug>/` 並存相對路徑；
+手寫檔案時自己把圖片複製到同一個資料夾就好。
 貼外站網址匯出時可能撞 CORS。
 
 ## CTA 頁
 
 `makeCtaSlide` 的預設值。Markdown 正文表達不了，所以存在檔案的 frontmatter
-（`cta:` 那一段），要改就在逐頁模式改：
+（`cta:` 那一段）。直接改那段 YAML，或在逐頁模式改：
 
 - `subhead`「分享給你的朋友吧！」/ `headline`「這篇貼文對你有幫助嗎？」
 - `stats` 四個互動數字 `["560", "204", "427", "318"]`
-- `imageUrl` 空字串
+- `image` 空字串（頁面上的欄位叫 `imageUrl`，寫進 frontmatter 的鍵是 `image`）
 
 ## 配色
 
