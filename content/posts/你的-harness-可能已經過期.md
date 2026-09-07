@@ -71,4 +71,4 @@ Claude Code 其實已經內建了 Loop，開發前端時，agent 通常會用 Pl
 
 近期像 Matt Pocock 的 `/grill-me`、`/implement` 這種極度輕量化的 skill 會紅，就是這個原因。
 
-我在文章裡面把「你的 Harness 可能已經過期」這件事講得更加完整，有興趣的話可以參考留言區。
+受限於篇幅，我把更詳盡的分析整理成文章放在留言區，歡迎點擊閱讀。
