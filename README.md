@@ -115,6 +115,36 @@ frontmatter 欄位——版位跟著圖走，手動改 md 的人也看得懂。�
   同源所以匯出讀得到；貼上其他站的網址則可能因 CORS 失敗。
 - 瀏覽器要有真實使用者點擊才會存檔，程式化觸發的下載會被丟掉。
 
+## Reels
+
+除了 1080×1350 的貼文，也能做 1080×1920 的 Reels 短片。首頁下方的 REELS 區塊列出所有影片，
+點進去是可以播放、拖時間軸、切換深淺配色的預覽（`/reel/<id>`）。
+
+```bash
+pnpm dev -p 3210        # 輸出要用開著的 dev server
+pnpm reel css-subgrid                 # → renders/css-subgrid-dark.mp4（reel 預設的配色）
+pnpm reel css-subgrid --theme light   # → renders/css-subgrid-light.mp4
+pnpm reel css-subgrid --stills 3,15   # 只截定格 → renders/css-subgrid-dark-stills/
+```
+
+Reels 是手寫的動畫腳本，沒辦法像貼文一樣從 Markdown 產生，所以一支就是
+[`src/reels/`](src/reels) 底下的一個資料夾，再到 [`src/reels/index.ts`](src/reels/index.ts) 註冊：
+
+- `Scene`：一次畫出所有會出現的元素。大標用 [`Caption`](src/components/reel-parts.tsx)
+  （跟貼文同一套 `**粗體**`／`` `程式碼` `` 標記），結尾直接沿用貼文的 `CtaBody`。
+- `build`：在字型載入後量真實的 DOM，再用 [`Timeline`](src/lib/reel/timeline.ts) 排進出場。
+  每一格都是時間 t 的純函數，所以預覽能任意拖、輸出時逐格截圖結果也一樣。
+- `music`：鼓組全開的時間點與音效 cue。曲子本身由
+  [`scripts/reel-music.mjs`](scripts/reel-music.mjs) 即時合成，沒有版權問題。
+
+版位、字體、行內標記、結尾 CTA 跟貼文共用；顏色是 [`theme.ts`](src/lib/theme.ts) 裡另外的 `REEL_THEMES`
+—— 影片是被滑過去的，貼文那組低飽和色在影片裡太淡。深色是近黑底 + 紫色品牌，淺色是
+[Catppuccin Latte](https://github.com/catppuccin/palette)。配色以 CSS 變數交給場景，
+所以同一支 reel 兩套都能輸出。
+
+輸出腳本（[`scripts/render-reel.mjs`](scripts/render-reel.mjs)）透過 Playwright 開本機的
+Google Chrome（`channel: "chrome"`），逐格截圖後交給 ffmpeg 壓片，所以需要裝好 Chrome 與 ffmpeg。
+
 ## 驗證
 
 `pnpm test:e2e` 用 Playwright 在 headless Chromium 裡跑完整流程，不會碰到你平常用的瀏覽器，

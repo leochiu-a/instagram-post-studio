@@ -4,6 +4,7 @@ import { LayersIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ReelList } from "./reel-list";
 import { SlideCard } from "./slide-card";
 import {
   AlertDialog,
@@ -170,6 +171,8 @@ export function PostList() {
           ))}
         </ul>
       )}
+
+      <ReelList />
 
       <AlertDialog
         open={pending !== null}

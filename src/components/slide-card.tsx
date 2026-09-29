@@ -32,7 +32,7 @@ function ImageSlot({
   );
 }
 
-function Header({
+export function Header({
   handle,
   timestamp,
   palette,
@@ -265,7 +265,13 @@ function ContentArea({
 
 const CTA_ICONS = [Heart, Comment, Send, Bookmark];
 
-function CtaBody({ slide, palette }: { slide: Extract<Slide, { kind: "cta" }>; palette: Palette }) {
+export function CtaBody({
+  slide,
+  palette,
+}: {
+  slide: Extract<Slide, { kind: "cta" }>;
+  palette: Palette;
+}) {
   const c = METRICS.cta;
   return (
     <>
