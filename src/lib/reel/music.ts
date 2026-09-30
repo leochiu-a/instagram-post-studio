@@ -1,19 +1,27 @@
-// 合成 reel 的 lo-fi 配樂（96 BPM、Fmaj7 → Em7 → Dm7 → Cmaj7），回傳 16-bit stereo WAV。
-// 曲子的骨架每支 reel 都一樣，只有鼓組全開的時間點（drop）和音效 cue 由 reel 定義提供
-// （見 src/lib/reel/types.ts 的 ReelMusic）。
+/**
+ * 合成 reel 的 lo-fi 配樂（96 BPM、Fmaj7 → Em7 → Dm7 → Cmaj7）。
+ *
+ * 曲子的骨架每支 reel 都一樣，只有鼓組全開的時間點（drop）和音效 cue 由 reel 定義提供。
+ * 預覽頁（瀏覽器，Web Audio 播放）與 scripts/render-reel.mjs（Node，寫成 WAV 混進 MP4）
+ * 共用這一份，所以預覽聽到的就是輸出的那一份。只用標準 API、不依賴 DOM 或 Node。
+ */
+import type { ReelMusic } from "./types";
 
 const SR = 44100;
 const BPM = 96;
 const BEAT = 60 / BPM;
 const BAR = BEAT * 4;
 
-const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
 
-/**
- * @param {{ duration: number, drop: number, cues: Array<{ kind: "whoosh" | "bonk" | "chime", at: number, note?: number }> }} spec
- * @returns {Buffer}
- */
-export function synthesize({ duration, drop, cues }) {
+export interface ReelAudio {
+  sampleRate: number;
+  left: Float32Array<ArrayBuffer>;
+  right: Float32Array<ArrayBuffer>;
+}
+
+/** 合成整支配樂：已經過 soft clip、正規化到 -1 dBFS、頭尾淡入淡出 */
+export function synthesizeMusic(duration: number, { drop, cues }: ReelMusic): ReelAudio {
   const DUR = duration;
   const N = Math.round(SR * DUR);
   const L = new Float32Array(N);
@@ -22,14 +30,14 @@ export function synthesize({ duration, drop, cues }) {
   let seed = 7;
   const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
 
-  function add(t0, len, fn, gain = 1, pan = 0) {
+  function add(t0: number, len: number, fn: (t: number) => number, gain = 1, pan = 0) {
     const s0 = Math.floor(t0 * SR),
       n = Math.floor(len * SR);
     const gl = gain * Math.cos(((pan + 1) * Math.PI) / 4),
       gr = gain * Math.sin(((pan + 1) * Math.PI) / 4);
     for (let i = 0; i < n && s0 + i < N; i++) {
       if (s0 + i < 0) continue;
-      const v = fn(i / SR, i);
+      const v = fn(i / SR);
       L[s0 + i] += v * gl;
       R[s0 + i] += v * gr;
     }
@@ -44,7 +52,7 @@ export function synthesize({ duration, drop, cues }) {
   ];
 
   /* ---- instruments ---- */
-  function pad(t0, notes, len) {
+  function pad(t0: number, notes: number[], len: number) {
     notes.forEach((m, k) => {
       let lp = 0;
       add(
@@ -65,7 +73,7 @@ export function synthesize({ duration, drop, cues }) {
       );
     });
   }
-  function keys(t0, m, gain, pan) {
+  function keys(t0: number, m: number, gain: number, pan: number) {
     const f = hz(m);
     add(
       t0,
@@ -83,7 +91,7 @@ export function synthesize({ duration, drop, cues }) {
       pan,
     );
   }
-  function bass(t0, m, len) {
+  function bass(t0: number, m: number, len: number) {
     const f = hz(m - 12);
     add(
       t0,
@@ -95,7 +103,7 @@ export function synthesize({ duration, drop, cues }) {
       0.32,
     );
   }
-  function kick(t0, g = 0.75) {
+  function kick(t0: number, g = 0.75) {
     let ph = 0;
     add(
       t0,
@@ -108,7 +116,7 @@ export function synthesize({ duration, drop, cues }) {
       g,
     );
   }
-  function snare(t0, g = 0.22) {
+  function snare(t0: number, g = 0.22) {
     let lp = 0;
     add(
       t0,
@@ -123,7 +131,7 @@ export function synthesize({ duration, drop, cues }) {
       g,
     );
   }
-  function hat(t0, g = 0.07, open = false) {
+  function hat(t0: number, g = 0.07, open = false) {
     let prev = 0;
     add(
       t0,
@@ -138,7 +146,7 @@ export function synthesize({ duration, drop, cues }) {
       0.3,
     );
   }
-  function whoosh(tCenter, len = 0.7, g = 0.2) {
+  function whoosh(tCenter: number, len = 0.7, g = 0.2) {
     let lp = 0;
     add(
       tCenter - len * 0.6,
@@ -153,7 +161,7 @@ export function synthesize({ duration, drop, cues }) {
       0,
     );
   }
-  function chime(t0, m, g = 0.16) {
+  function chime(t0: number, m: number, g = 0.16) {
     const f = hz(m);
     add(
       t0,
@@ -167,7 +175,7 @@ export function synthesize({ duration, drop, cues }) {
       0.2,
     );
   }
-  function bonk(t0, g = 0.14) {
+  function bonk(t0: number, g = 0.14) {
     add(t0, 0.25, (t) => Math.sin(2 * Math.PI * (330 - 500 * t) * t) * Math.exp(-t * 18), g, -0.2);
   }
 
@@ -244,25 +252,38 @@ export function synthesize({ duration, drop, cues }) {
     peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
   }
   const norm = 0.89 / peak;
-  const buf = Buffer.alloc(44 + N * 4);
-  buf.write("RIFF", 0);
-  buf.writeUInt32LE(36 + N * 4, 4);
-  buf.write("WAVE", 8);
-  buf.write("fmt ", 12);
-  buf.writeUInt32LE(16, 16);
-  buf.writeUInt16LE(1, 20);
-  buf.writeUInt16LE(2, 22);
-  buf.writeUInt32LE(SR, 24);
-  buf.writeUInt32LE(SR * 4, 28);
-  buf.writeUInt16LE(4, 32);
-  buf.writeUInt16LE(16, 34);
-  buf.write("data", 36);
-  buf.writeUInt32LE(N * 4, 40);
   for (let i = 0; i < N; i++) {
     const t = i / SR;
-    const fade = Math.min(1, t / 0.3) * Math.min(1, (DUR - t) / 2.5);
-    buf.writeInt16LE(Math.round(L[i] * norm * fade * 32767), 44 + i * 4);
-    buf.writeInt16LE(Math.round(R[i] * norm * fade * 32767), 46 + i * 4);
+    const gain = norm * Math.min(1, t / 0.3) * Math.min(1, (DUR - t) / 2.5);
+    L[i] *= gain;
+    R[i] *= gain;
   }
-  return buf;
+  return { sampleRate: SR, left: L, right: R };
+}
+
+/** 包成 16-bit stereo PCM 的 WAV 檔 */
+export function encodeWav({ sampleRate, left, right }: ReelAudio): Uint8Array {
+  const n = left.length;
+  const view = new DataView(new ArrayBuffer(44 + n * 4));
+  const text = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  };
+  text(0, "RIFF");
+  view.setUint32(4, 36 + n * 4, true);
+  text(8, "WAVE");
+  text(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 2, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 4, true);
+  view.setUint16(32, 4, true);
+  view.setUint16(34, 16, true);
+  text(36, "data");
+  view.setUint32(40, n * 4, true);
+  for (let i = 0; i < n; i++) {
+    view.setInt16(44 + i * 4, Math.round(left[i] * 32767), true);
+    view.setInt16(46 + i * 4, Math.round(right[i] * 32767), true);
+  }
+  return new Uint8Array(view.buffer);
 }

@@ -3,7 +3,7 @@
 // 沒給 --theme 就用 reel 定義裡的預設配色。
 //
 // 開著的 dev server 上打開 /reel/<id>?render，逐格 seek + 截圖，用 ffmpeg 壓成
-// 1080×1920 / 30fps 的 H.264，同時把 reel-music.mjs 合成的配樂混進去。
+// 1080×1920 / 30fps 的 H.264，同時把 src/lib/reel/music.ts 合成的配樂混進去。
 // 截圖透過 Playwright 開一個 headless 的 Google Chrome（channel: "chrome"，用本機裝好的 Chrome、
 // 不必另外下載瀏覽器），是全新的 profile，不會碰到平常用的瀏覽器資料。
 import { chromium } from "@playwright/test";
@@ -11,7 +11,8 @@ import { spawn } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { synthesize } from "./reel-music.mjs";
+// Node 24 會直接剝掉型別執行 .ts；配樂跟預覽頁用的是同一份合成程式
+import { encodeWav, synthesizeMusic } from "../src/lib/reel/music.ts";
 
 const FPS = 30;
 const PORT = 3210;
@@ -75,7 +76,7 @@ if (stills) {
   process.exit(0);
 }
 
-await writeFile(wav, synthesize({ duration, ...music }));
+await writeFile(wav, encodeWav(synthesizeMusic(duration, music)));
 
 const ffmpeg = spawn(
   "ffmpeg",

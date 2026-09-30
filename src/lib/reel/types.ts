@@ -10,7 +10,7 @@ export type SoundCue =
   | { kind: "chime"; at: number; note: number };
 
 /**
- * 配樂的編排。曲子本身（96 BPM 的 lo-fi）由 scripts/reel-music.mjs 合成，
+ * 配樂的編排。曲子本身（96 BPM 的 lo-fi）由 music.ts 合成，
  * 每支 reel 只需要說鼓組在哪裡「下來」、哪些時間點要配音效。
  */
 export interface ReelMusic {

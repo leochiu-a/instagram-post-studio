@@ -135,7 +135,7 @@ Reels 是手寫的動畫腳本，沒辦法像貼文一樣從 Markdown 產生，�
 - `build`：在字型載入後量真實的 DOM，再用 [`Timeline`](src/lib/reel/timeline.ts) 排進出場。
   每一格都是時間 t 的純函數，所以預覽能任意拖、輸出時逐格截圖結果也一樣。
 - `music`：鼓組全開的時間點與音效 cue。曲子本身由
-  [`scripts/reel-music.mjs`](scripts/reel-music.mjs) 即時合成，沒有版權問題。
+  [`src/lib/reel/music.ts`](src/lib/reel/music.ts) 即時合成，沒有版權問題；預覽頁與輸出共用同一份，預覽聽到的就是輸出的配樂。
 
 版位、字體、行內標記、結尾 CTA 跟貼文共用；顏色是 [`theme.ts`](src/lib/theme.ts) 裡另外的 `REEL_THEMES`
 —— 影片是被滑過去的，貼文那組低飽和色在影片裡太淡。深色是近黑底 + 紫色品牌，淺色是

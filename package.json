@@ -14,7 +14,7 @@
     "prepare": "husky",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "reel": "node scripts/render-reel.mjs"
+    "reel": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/render-reel.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

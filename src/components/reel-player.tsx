@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftIcon, PauseIcon, PlayIcon } from "lucide-react";
+import { ArrowLeftIcon, PauseIcon, PlayIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ReelStage } from "./reel-stage";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import type { Timeline } from "@/lib/reel/timeline";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { ReelDefinition, ReelMusic } from "@/lib/reel/types";
+import { useReelAudio } from "@/lib/reel/use-reel-audio";
 import { REEL_CANVAS } from "@/lib/theme";
 import type { ThemeName } from "@/lib/types";
 
@@ -48,6 +49,8 @@ function PreviewView({ reel, initialTheme }: { reel: ReelDefinition; initialThem
   const timeline = useRef<Timeline | null>(null);
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(true);
+  const [sound, setSound] = useState(false);
+  useReelAudio(reel, { enabled: sound, playing, time });
   const box = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.3);
 
@@ -137,6 +140,15 @@ function PreviewView({ reel, initialTheme }: { reel: ReelDefinition; initialThem
           onClick={() => setPlaying((p) => !p)}
         >
           {playing ? <PauseIcon /> : <PlayIcon />}
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon-sm"
+          aria-label={sound ? "關閉聲音" : "開啟聲音"}
+          aria-pressed={sound}
+          onClick={() => setSound((on) => !on)}
+        >
+          {sound ? <Volume2Icon /> : <VolumeXIcon />}
         </Button>
         <input
           type="range"
