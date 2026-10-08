@@ -192,6 +192,8 @@ export interface ReelColors {
     property: string;
     value: string;
     comment: string;
+    /** 指令回傳的錯誤，例如 redis-cli 的 `(error) …` */
+    error: string;
     /** 重點行的框與底 */
     highlight: string;
   };
@@ -232,6 +234,7 @@ export const REEL_THEMES: Record<ThemeName, ReelColors> = {
       property: "#67e8f9",
       value: "#fdba74",
       comment: "#6b6f85",
+      error: "#fb4f6f",
       highlight: "#a3e635",
     },
   },
@@ -258,6 +261,7 @@ export const REEL_THEMES: Record<ThemeName, ReelColors> = {
       property: "#89dceb", // sky
       value: "#fab387", // peach
       comment: "#7f849c", // overlay1
+      error: "#f38ba8", // red
       highlight: "#a6e3a1", // green
     },
   },
@@ -287,6 +291,7 @@ export function reelCssVars(c: ReelColors) {
     "--reel-code-property": c.code.property,
     "--reel-code-value": c.code.value,
     "--reel-code-comment": c.code.comment,
+    "--reel-code-error": c.code.error,
     "--reel-code-highlight": c.code.highlight,
   };
 }

@@ -1,0 +1,318 @@
+/*
+  兩支 Redis reel 共用的「Redis 面板」：指令列、maxmemory-policy、記憶體條、6 個 key，
+  以及踢掉、寫入時畫的框、標籤與記號。顏色全部來自 --reel-* 變數，這裡只管版面。
+*/
+
+.abs {
+  position: absolute;
+}
+
+/* ---------- 示範區 ---------- */
+.demo {
+  left: 71.12px;
+  width: 935.84px;
+  height: 560px;
+}
+
+/* 指令列 + 淘汰策略 + 記憶體條。三塊各自是一個「聚焦」單位，沒輪到的會被調暗 */
+.mem {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 250px;
+}
+
+.lane {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 72px;
+}
+
+/* redis-cli 送進來的指令，用程式碼的配色 */
+.pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 72px;
+  padding: 0 28px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font:
+    700 30px/1 var(--font-jetbrains),
+    monospace;
+  background: var(--reel-code-bg);
+  border: 2px solid var(--reel-code-line);
+  color: var(--reel-code-text);
+}
+
+.pill span {
+  color: var(--reel-code-comment);
+}
+
+.pill.err {
+  color: var(--reel-code-error);
+}
+
+/* 目前的 maxmemory-policy。換策略時只有右邊的值翻牌，四種值疊在同一格 */
+.policyRow {
+  position: absolute;
+  top: 92px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 64px;
+  padding: 0 26px;
+  border-radius: 18px;
+  font:
+    700 30px/1 var(--font-jetbrains),
+    monospace;
+  background: var(--reel-code-bg);
+  border: 2px solid var(--reel-code-line);
+  color: var(--reel-code-property);
+}
+
+.polVals {
+  display: grid;
+}
+
+.polVals > * {
+  grid-area: 1 / 1;
+  color: var(--reel-code-value);
+}
+
+.bar {
+  position: absolute;
+  top: 176px;
+  left: 0;
+  right: 0;
+}
+
+.barLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  font-size: 26px;
+  line-height: 1.2;
+  color: var(--reel-muted);
+}
+
+.barLabel code {
+  font-family: var(--font-jetbrains), monospace;
+}
+
+.badge {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--reel-ink);
+  background: var(--reel-bad);
+}
+
+.barTrack {
+  position: relative;
+  height: 26px;
+  border-radius: 13px;
+  overflow: hidden;
+  background: var(--reel-panel);
+  border: 2px solid var(--reel-line);
+}
+
+.barFill {
+  position: absolute;
+  inset: 0;
+  background: var(--reel-brand);
+}
+
+.barFill.full {
+  background: var(--reel-bad);
+}
+
+/* 6 個 key。每一份 grid 的版面完全一樣，換策略時整份交叉淡入淡出 */
+.grid {
+  position: absolute;
+  top: 272px;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.key {
+  box-sizing: border-box;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: 16px 22px;
+  border-radius: 24px;
+  background: var(--reel-card);
+  border: 2px solid var(--reel-line);
+}
+
+/* build 建出來、從指令列飛進格子的新 key */
+.key.flying {
+  position: absolute;
+}
+
+.keyName {
+  margin-bottom: 4px;
+  font:
+    700 30px/1.3 var(--font-jetbrains),
+    monospace;
+}
+
+.meta {
+  font-size: 26px;
+  line-height: 1.4;
+  color: var(--reel-muted);
+}
+
+/* 這個策略看的是哪一行：LRU 看「最近」、LFU 看「次數」 */
+.meta.focus {
+  font-weight: 700;
+  color: var(--reel-tint-2);
+}
+
+/* TTL 那一行：有 TTL 的 key 是膠囊，拿掉 TTL 之後換成「沒設 TTL」，兩個疊在同一格 */
+.ttlRow {
+  display: grid;
+  justify-items: start;
+}
+
+.ttlRow > * {
+  grid-area: 1 / 1;
+}
+
+.ttl {
+  padding: 2px 14px;
+  border-radius: 999px;
+  font-size: 26px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--reel-ink);
+  background: var(--reel-tint-1);
+}
+
+/* 所有 grid 共用的聚焦單位 */
+.gridArea {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- 標註 ---------- */
+.ring {
+  position: absolute;
+  border-radius: 30px;
+  border: 5px solid var(--reel-tint-1);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--reel-tint-1) 55%, transparent);
+}
+
+.ring.bad {
+  border-color: var(--reel-bad);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--reel-bad) 55%, transparent);
+}
+
+.ring.dash {
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.tag {
+  position: absolute;
+  translate: -50% 0;
+  padding: 8px 18px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--reel-ink);
+  background: var(--reel-tint-1);
+}
+
+.tag.bad {
+  background: var(--reel-bad);
+}
+
+.mark {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  color: var(--reel-ink);
+  background: var(--reel-bad);
+}
+
+.mark.ok {
+  background: var(--reel-ok);
+}
+
+/* ---------- 說明卡片 ---------- */
+/* 抽樣的三個步驟：一次只出現一張，疊在同一個位置 */
+.steps {
+  left: 71.12px;
+  width: 935.84px;
+  display: grid;
+}
+
+.steps > * {
+  grid-area: 1 / 1;
+}
+
+.explain {
+  left: 71.12px;
+  width: 935.84px;
+  display: grid;
+  gap: 20px;
+}
+
+.chip {
+  display: flex;
+  gap: 22px;
+  align-items: baseline;
+  padding: 24px 30px;
+  border-radius: 24px;
+  font-size: 32px;
+  line-height: 1.5;
+  background: var(--reel-card);
+  border: 2px solid var(--reel-line);
+}
+
+.chip b {
+  flex: none;
+  font:
+    700 28px/1 var(--font-jetbrains),
+    monospace;
+  color: var(--reel-ok);
+}
+
+/* ---------- 結尾 ---------- */
+/* 總結也是程式碼，跟 CodeBlock 用同一組顏色（淺色版是深底） */
+.summary {
+  left: 71.12px;
+  width: 935.84px;
+  padding: 30px 0;
+  border-radius: 28px;
+  text-align: center;
+  white-space: nowrap;
+  font:
+    700 42px/1.6 var(--font-jetbrains),
+    monospace;
+  background: var(--reel-code-bg);
+  border: 2px solid var(--reel-code-line);
+  color: var(--reel-code-value);
+}
+
+.summary span {
+  color: var(--reel-code-property);
+}
