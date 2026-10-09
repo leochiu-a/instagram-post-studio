@@ -53,11 +53,14 @@ function ReelHeader({ reel }: { reel: ReelDefinition }) {
 export function ReelStage({
   reel,
   theme = reel.theme,
+  cover = false,
   onReady,
 }: {
   reel: ReelDefinition;
   /** 預設用 reel 自己的 theme；預覽頁可以切換 */
   theme?: ThemeName;
+  /** 畫封面（reel.Cover）而不是影片；封面是靜態的，不跑 build */
+  cover?: boolean;
   /** 時間軸排好之後呼叫；呼叫端拿它 seek */
   onReady: (timeline: Timeline) => void;
 }) {
@@ -75,7 +78,7 @@ export function ReelStage({
     // 對齊線是量 DOM 畫的，字型還沒載入就量會量到 fallback 字的行高
     void document.fonts.ready.then(() => {
       if (cancelled) return;
-      reel.build(node, timeline);
+      if (!cover) reel.build(node, timeline);
       ready(timeline);
       setBuilt(true);
     });
@@ -84,7 +87,7 @@ export function ReelStage({
       timeline.dispose();
       setBuilt(false);
     };
-  }, [reel]);
+  }, [reel, cover]);
 
   const c = REEL_THEMES[theme];
   return (
@@ -107,7 +110,11 @@ export function ReelStage({
       }
     >
       <ReelHeader reel={reel} />
-      <reel.Scene palette={REEL_PALETTE} />
+      {cover && reel.Cover ? (
+        <reel.Cover palette={REEL_PALETTE} />
+      ) : (
+        <reel.Scene palette={REEL_PALETTE} />
+      )}
     </div>
   );
 }

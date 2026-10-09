@@ -9,7 +9,7 @@ import { REEL_CANVAS } from "@/lib/theme";
 import { useFitScale } from "@/lib/use-fit-scale";
 import { REELS } from "@/reels";
 
-/** 縮圖就是真正的畫布停在 poster 那一秒，跟貼文封面一樣不另做假預覽 */
+/** 縮圖就是真正的畫布：有封面就畫封面，沒有就停在 poster 那一秒，跟貼文一樣不另做假預覽 */
 function Poster({ reel }: { reel: ReelDefinition }) {
   // reel 跟貼文同寬，所以 useFitScale 以 1080 換算的比例可以直接用
   const { ref, scale } = useFitScale(0.5, 0.22);
@@ -21,7 +21,7 @@ function Poster({ reel }: { reel: ReelDefinition }) {
       style={{ aspectRatio: `${REEL_CANVAS.width} / ${REEL_CANVAS.height}` }}
     >
       <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
-        <ReelStage reel={reel} onReady={onReady} />
+        <ReelStage reel={reel} cover={reel.Cover !== undefined} onReady={onReady} />
       </div>
     </div>
   );

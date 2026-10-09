@@ -130,3 +130,40 @@
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
+
+/* ---------- 封面 ---------- */
+.coverEp {
+  position: absolute;
+  left: 73.04px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 34px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--reel-ink);
+  background: var(--reel-ok);
+}
+
+.coverTitle {
+  position: absolute;
+  left: 73.04px;
+  width: 935.84px;
+  font-size: 100px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.coverGrid {
+  position: absolute;
+  left: 71.12px;
+  width: 935.84px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.coverPick {
+  border: 5px solid var(--reel-bad);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--reel-bad) 50%, transparent);
+}

@@ -1,5 +1,6 @@
 // 把一支 reel 輸出成 MP4：pnpm reel <id> [--theme dark|light] → renders/<id>-<theme>.mp4
 // 只截幾張定格檢查版面：pnpm reel <id> --stills 2.8,15,39.5 → renders/<id>-<theme>-stills/*.png
+// 輸出封面（發 Reels 時另外上傳的圖）：pnpm reel <id> --cover → renders/<id>-<theme>-cover.png
 // 沒給 --theme 就用 reel 定義裡的預設配色。
 //
 // 開著的 dev server 上打開 /reel/<id>?render，逐格 seek + 截圖，用 ffmpeg 壓成
@@ -17,10 +18,10 @@ import { encodeWav, synthesizeMusic } from "../src/lib/reel/music.ts";
 const FPS = 30;
 const PORT = 3210;
 const USAGE =
-  "用法：pnpm reel <id> [--theme dark|light] [--stills 秒數,秒數…]，例如 pnpm reel css-subgrid --theme light";
+  "用法：pnpm reel <id> [--theme dark|light] [--stills 秒數,秒數…] [--cover]，例如 pnpm reel css-subgrid --theme light";
 const { positionals, values } = parseArgs({
   allowPositionals: true,
-  options: { theme: { type: "string" }, stills: { type: "string" } },
+  options: { theme: { type: "string" }, stills: { type: "string" }, cover: { type: "boolean" } },
 });
 const [id] = positionals;
 const stills = values.stills?.split(",").filter(Boolean).map(Number) ?? null;
@@ -31,6 +32,7 @@ if (!id || (values.theme && !["dark", "light"].includes(values.theme)) || stills
 
 const query = new URLSearchParams({ render: "" });
 if (values.theme) query.set("theme", values.theme);
+if (values.cover) query.set("cover", "");
 const url = `http://localhost:${PORT}/reel/${encodeURIComponent(id)}?${query}`;
 const outDir = path.resolve("renders");
 
@@ -63,6 +65,14 @@ const out = path.join(outDir, `${id}-${theme}.mp4`);
 const wav = path.join(outDir, `${id}-${theme}.wav`);
 
 await mkdir(outDir, { recursive: true });
+
+if (values.cover) {
+  const cover = path.join(outDir, `${id}-${theme}-cover.png`);
+  await page.screenshot({ path: cover });
+  await browser.close();
+  console.log(`封面 → ${path.relative(process.cwd(), cover)}`);
+  process.exit(0);
+}
 
 if (stills) {
   const dir = path.join(outDir, `${id}-${theme}-stills`);

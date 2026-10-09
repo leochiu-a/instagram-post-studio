@@ -1,6 +1,7 @@
 import s from "./reel.module.css";
 import panel from "../redis-shared/panel.module.css";
 import { Caption } from "@/components/reel-parts";
+import { RichText } from "@/components/rich-text";
 import type { Timeline } from "@/lib/reel/timeline";
 import type { ReelDefinition } from "@/lib/reel/types";
 import type { Palette } from "@/lib/theme";
@@ -318,6 +319,52 @@ function Scene({ palette }: { palette: Palette }) {
   );
 }
 
+/**
+ * 封面：問題 + 6 個 key 裡圈出一個「先刪它？」+ 兩種答案的名字。
+ * 個人頁格子會裁成中間 3:4，內容放在 y 400～1500，置中在裁切範圍裡
+ */
+function Cover({ palette }: { palette: Palette }) {
+  return (
+    <>
+      <div className={s.coverEp} style={{ top: 400 }}>
+        Redis 淘汰策略 · 第 1 集
+      </div>
+      <div className={s.coverTitle} style={{ top: 470 }}>
+        <RichText value={"Redis 記憶體滿了\n會先刪掉**哪些資料**？"} palette={palette} />
+      </div>
+      <div className={s.coverGrid} style={{ top: 830 }}>
+        {KEYS.map((key, i) => (
+          <div
+            key={key.name}
+            className={`${panel.key} ${i === REPORT ? s.coverPick : ""}`}
+            style={{ position: "relative" }}
+          >
+            {i === REPORT && (
+              <span className={`${panel.tag} ${panel.bad}`} style={{ left: "50%", top: -26 }}>
+                先刪它？
+              </span>
+            )}
+            <div className={panel.keyName}>{key.name}</div>
+            <div className={panel.meta}>最近：{key.recency}</div>
+            <div className={panel.meta}>存取 {key.count} 次</div>
+          </div>
+        ))}
+      </div>
+      <div className={s.compare} style={{ position: "absolute", top: 1240 }}>
+        {COMPARE.map((algo) => (
+          <div key={algo.name} className={s.algo}>
+            <div className={s.algoName}>
+              {algo.name}
+              <small>{algo.full}</small>
+            </div>
+            <div className={s.algoRow}>{algo.rows[0][1]}</div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function build(root: HTMLElement, tl: Timeline) {
   const k = panelKit(root, tl);
   const { q, qa, cards, slots, ring, mark, markOn, tag, newKey, flyIn, pill, rel } = k;
@@ -533,6 +580,7 @@ export const redisLruLfu: ReelDefinition = {
   duration: 92.5,
   poster: 32,
   Scene,
+  Cover,
   build,
   music: {
     drop: 30,

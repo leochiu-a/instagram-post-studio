@@ -28,7 +28,15 @@ declare global {
  * 輸出模式：只有 1:1 的畫布，沒有任何介面。
  * 截圖工具的 viewport 直接設成 1080×1920，所以不需要縮放。
  */
-function RenderView({ reel, theme }: { reel: ReelDefinition; theme: ThemeName }) {
+function RenderView({
+  reel,
+  theme,
+  cover,
+}: {
+  reel: ReelDefinition;
+  theme: ThemeName;
+  cover: boolean;
+}) {
   const onReady = useCallback(
     (timeline: Timeline) => {
       timeline.seek(0);
@@ -41,11 +49,12 @@ function RenderView({ reel, theme }: { reel: ReelDefinition; theme: ThemeName })
     },
     [reel, theme],
   );
-  return <ReelStage reel={reel} theme={theme} onReady={onReady} />;
+  return <ReelStage reel={reel} theme={theme} cover={cover} onReady={onReady} />;
 }
 
 function PreviewView({ reel, initialTheme }: { reel: ReelDefinition; initialTheme: ThemeName }) {
   const [theme, setTheme] = useState(initialTheme);
+  const [cover, setCover] = useState(false);
   const timeline = useRef<Timeline | null>(null);
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -108,6 +117,17 @@ function PreviewView({ reel, initialTheme }: { reel: ReelDefinition; initialThem
         <p className="text-muted-foreground ml-auto hidden font-mono text-[0.7rem] tracking-wider tabular-nums sm:block">
           1080×1920 · {reel.duration}s · pnpm reel {reel.id} --theme {theme}
         </p>
+        {reel.Cover && (
+          <ToggleGroup
+            aria-label="畫面"
+            value={[cover ? "cover" : "video"]}
+            onValueChange={([next]) => next && setCover(next === "cover")}
+            variant="default"
+          >
+            <ToggleGroupItem value="video">影片</ToggleGroupItem>
+            <ToggleGroupItem value="cover">封面</ToggleGroupItem>
+          </ToggleGroup>
+        )}
         <ToggleGroup
           aria-label="配色"
           value={[theme]}
@@ -128,7 +148,7 @@ function PreviewView({ reel, initialTheme }: { reel: ReelDefinition; initialThem
             transform: `translate(-50%, -50%) scale(${scale})`,
           }}
         >
-          <ReelStage reel={reel} theme={theme} onReady={onReady} />
+          <ReelStage reel={reel} theme={theme} cover={cover} onReady={onReady} />
         </div>
       </div>
 
@@ -174,14 +194,16 @@ function PreviewView({ reel, initialTheme }: { reel: ReelDefinition; initialThem
 export function ReelPlayer({
   reel,
   render,
+  cover,
   theme,
 }: {
   reel: ReelDefinition;
   render: boolean;
+  cover: boolean;
   theme: ThemeName;
 }) {
   return render ? (
-    <RenderView reel={reel} theme={theme} />
+    <RenderView reel={reel} theme={theme} cover={cover} />
   ) : (
     <PreviewView reel={reel} initialTheme={theme} />
   );

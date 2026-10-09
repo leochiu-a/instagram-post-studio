@@ -37,6 +37,11 @@ export interface ReelDefinition {
   music: ReelMusic;
   /** 所有會出現的元素一次畫好，進出場交給 build 排的時間軸 */
   Scene: ComponentType<{ palette: Palette }>;
+  /**
+   * 封面：發 Reels 時另外上傳的那張圖（pnpm reel <id> --cover 輸出 PNG），也是首頁的縮圖。
+   * 靜態畫面，不跑時間軸。個人頁格子會把它裁成中間的 1080×1440（3:4），重點要放在 y 240～1680
+   */
+  Cover?: ComponentType<{ palette: Palette }>;
   /** 在字型載入、版面排好之後執行：可以量真實的 DOM 位置再排動畫 */
   build: (root: HTMLElement, tl: Timeline) => void;
 }
