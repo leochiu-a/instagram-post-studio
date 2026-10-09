@@ -28,6 +28,7 @@ src/reels/<id>/reel.module.css  ← 只管版面，顏色一律吃 --reel-* 變�
 4. 驗（見〈驗〉），修到四項都過。
 5. `pnpm reel <id> --theme dark` 與 `--theme light` 各輸出一支（`renders/<id>-<theme>.mp4`），
    用 SendUserFile 交給使用者。
+6. 有做封面（`Cover`）的話，`pnpm reel <id> --cover` 輸出 `renders/<id>-<theme>-cover.png`，一起交出去。
 
 `<id>` 是英文 kebab-case（`css-has`、`view-transitions`）—— 它同時是網址 `/reel/<id>`
 與輸出檔名，不用中文，免得每個工具各自 encode 一次。
@@ -44,6 +45,7 @@ export const cssHas: ReelDefinition = {
   theme: "dark", // 預設配色；預覽頁可以切、輸出時 --theme 覆寫
   duration: 35, // 秒，必須是 2.5 的倍數（見〈配樂〉）
   poster: 15, // 首頁縮圖停在哪一秒：挑「結果」那一幕，不要挑開場
+  Cover, // 選填：發 Reels 時另外上傳的封面，也是首頁縮圖（見〈封面〉）
   Scene,
   build,
   music: { drop: 12.5, cues: [...] },
@@ -151,6 +153,16 @@ tl.track(el, [[秒, { o, x, y, s, cw, ch, hl, e }], ...]); // 自己排關鍵影
 
 兩種版面的切換（例如 flex → subgrid）不要用動畫去內插版面：把兩份都畫出來疊在一起，
 交叉淡入淡出（範本的 `gridA` / `gridB`）。版面是離散的，硬要補間只會看到東西亂跳。
+
+## 封面
+
+`Cover` 是一個靜態的 React 元件，畫在同一張 1080×1920 畫布上（頁首會自動畫），不跑時間軸。
+預覽頁右上角可以切「影片／封面」，`pnpm reel <id> --cover` 截成 PNG 給使用者上傳到 IG。
+
+- IG 個人頁的格子會把封面裁成中間的 1080×1440（3:4），重點放在 y 240～1680，最好置中在這段。
+- 寫成觀眾自己會問的問題（「Redis 記憶體滿了，會先刪掉哪些資料？」）加上片中的示範畫面縮影，不要寫答案。
+  「該 X 誰？」這種設問句有 AI 感（使用者回饋過），用實際會講的話。
+- 片名、集數放在大標上方的膠囊；顏色與零件一樣只用 `--reel-*` 變數與現成 CSS。
 
 ## 配樂
 
