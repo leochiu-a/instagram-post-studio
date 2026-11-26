@@ -37,13 +37,15 @@ A Verified bot is a bot or agent that Cloudflare has confirmed is transparent ab
 
 通過認證的 bot 會被歸到一個分類。Googlebot、Bingbot 是 Search Engine Crawler，Slack、Discord 貼連結時抓預覽的是 Page Preview，RSS 和 podcast 的更新器是 Feed Fetcher。
 
-分類總共 17 種，寫 WAF 規則時可以拿分類當條件，哪一類放、哪一類擋，由站長自己決定。
+分類總共 17 種，寫 WAF 規則時可以直接拿來當條件。
 
 ## AI 爬蟲分成三種
 
 17 種裡有三種跟 AI 有關，差在抓了內容拿去做什麼。
 
-AI Crawler 抓內容去訓練模型，例子是 ChatGPT 的爬蟲。AI Assistant 是使用者下指令才出動的，像 Perplexity-User、DuckAssistBot。AI Search 負責 AI 搜尋，例子是 OAI-SearchBot。
+- AI Crawler 拿去訓練模型，像 ChatGPT 的爬蟲
+- AI Assistant 有人叫才來，像 Perplexity-User
+- AI Search 拿去做 AI 搜尋，像 OAI-SearchBot
 
 不想讓文章被拿去訓練，又想被 AI 搜尋找到，就只擋第一種。
 
