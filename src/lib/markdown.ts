@@ -107,6 +107,18 @@ export function parseMarkdown(source: string, cta?: Partial<CtaSlide>): Slide[] 
 }
 
 /**
+ * 文件裡 offset 這個位置落在第幾頁（從 0 算），跟 parseMarkdown 切頁的規則
+ * 一致：每個 `# ` 或 `## ` 開一頁。在第一個標題之前回傳 null。
+ */
+export function slideIndexAt(source: string, offset: number): number | null {
+  // 切到游標那一行的行尾：游標停在標題中間也要算進這一頁
+  const lineEnd = source.indexOf("\n", offset);
+  const upto = lineEnd === -1 ? source : source.slice(0, lineEnd);
+  const headings = upto.split("\n").filter((line) => /^#{1,2}\s+/.test(line)).length;
+  return headings === 0 ? null : headings - 1;
+}
+
+/**
  * 反向：把目前的頁面倒回 Markdown。這是存檔時真正落到磁碟上的內容，
  * 所以 parseMarkdown 讀得回來的東西這裡都要寫出去 —— 版位就是靠 alt 帶的。
  * CTA 頁不在這裡，它走 frontmatter（見 post-file.ts）。

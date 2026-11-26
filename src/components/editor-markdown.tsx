@@ -6,6 +6,7 @@ import { MarkdownInput } from "@/components/markdown-input";
 interface EditorMarkdownProps {
   value: string;
   onChange: (value: string) => void;
+  onCursor?: (doc: string, offset: number) => void;
 }
 
 /** 語法說明裡的行內範例。訊號色留給「正在動作」的東西，這裡只用檯面色分層 */
@@ -17,7 +18,7 @@ function Syntax({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function EditorMarkdown({ value, onChange }: EditorMarkdownProps) {
+export function EditorMarkdown({ value, onChange, onCursor }: EditorMarkdownProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/*
@@ -49,6 +50,7 @@ export function EditorMarkdown({ value, onChange }: EditorMarkdownProps) {
       <MarkdownInput
         value={value}
         onChange={onChange}
+        onCursor={onCursor}
         placeholder="# 封面標題"
         className="min-h-64 flex-1"
       />

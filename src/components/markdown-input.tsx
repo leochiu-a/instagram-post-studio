@@ -143,17 +143,27 @@ const extensions: Extension[] = [
 interface MarkdownInputProps {
   value: string;
   onChange: (value: string) => void;
+  /** 游標（選取範圍的 head）移動時回報當下的文件與游標位置 */
+  onCursor?: (doc: string, offset: number) => void;
   placeholder?: string;
   className?: string;
 }
 
-export function MarkdownInput({ value, onChange, placeholder, className }: MarkdownInputProps) {
+export function MarkdownInput({
+  value,
+  onChange,
+  onCursor,
+  placeholder,
+  className,
+}: MarkdownInputProps) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   /** onChange 每次 render 都是新的函式，但編輯器只建一次，所以透過 ref 取用最新的 */
   const emit = useRef(onChange);
+  const emitCursor = useRef(onCursor);
   useEffect(() => {
     emit.current = onChange;
+    emitCursor.current = onCursor;
   });
   /** 建立時的內容。之後的同步走下面那個 effect，這裡只要一個起點 */
   const initial = useRef(value);
@@ -168,6 +178,10 @@ export function MarkdownInput({ value, onChange, placeholder, className }: Markd
           ...(placeholder ? [cmPlaceholder(placeholder)] : []),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) emit.current(update.state.doc.toString());
+            // 只在編輯器有焦點時回報：外面（逐頁）整份換掉文件那次不算使用者移動游標
+            if (update.selectionSet && update.view.hasFocus) {
+              emitCursor.current?.(update.state.doc.toString(), update.state.selection.main.head);
+            }
           }),
         ],
       }),

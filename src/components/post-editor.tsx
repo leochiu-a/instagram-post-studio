@@ -26,7 +26,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { downloadAllAsZip, downloadSlide, safeFileName } from "@/lib/export";
 import { cn } from "@/lib/utils";
-import { parseMarkdown } from "@/lib/markdown";
+import { parseMarkdown, slideIndexAt } from "@/lib/markdown";
 import { useHydrated, usePost } from "@/lib/post-store";
 import { usePanelWidth } from "@/lib/use-panel-width";
 import { KIND_LABEL, type Slide, type ThemeName } from "@/lib/types";
@@ -316,7 +316,22 @@ export function PostEditor({ postId }: { postId: string }) {
             {panel === "markdown" && (
               <>
                 <PanelLabel>Markdown</PanelLabel>
-                <EditorMarkdown value={draft} onChange={editDraft} />
+                <EditorMarkdown
+                  value={draft}
+                  onChange={editDraft}
+                  onCursor={(doc, offset) => {
+                    // 窄螢幕是上下堆疊的一條長頁面，捲去預覽就等於把編輯器捲走，
+                    // 根本沒辦法打字。只有左右分欄（lg）時兩邊同時看得到，才值得連動。
+                    if (!window.matchMedia("(min-width: 64rem)").matches) return;
+                    // 草稿與頁面順序一致（逐頁那邊也是照這份切），用第幾頁對回去就好。
+                    // 剛打出新標題、還沒套用的那幾百毫秒會對不到，就先不動。
+                    const index = slideIndexAt(doc, offset);
+                    const id = index === null ? undefined : post.slides[index]?.id;
+                    if (!id || id === activeId) return;
+                    setActiveId(id);
+                    scrollPreviewIntoView(id);
+                  }}
+                />
               </>
             )}
 
