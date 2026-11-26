@@ -21,38 +21,38 @@ cta:
 
 ![banner](/post-images/cloudflare-verified-bots/fake-googlebot.webp)
 
-User-Agent 是請求裡自己報上名字的那一行，任何爬蟲都能寫上 Googlebot。很多網站為了 SEO 會放行搜尋引擎，只看這行字，假的也會一起進來。
+User-Agent 說穿了就是請求裡自己報上名號的那一行，誰想寫 Googlebot 都可以。很多網站為了顧 SEO 習慣直接放行搜尋引擎，但如果只認這行字，一堆假爬蟲也就跟著混進來了。
 
-Cloudflare 的 managed rules 裡有一條 Fake Google Bot，專門抓自稱 Googlebot、來源卻驗證不過的請求。
+如果有用 Cloudflare，它的 managed rules 裡其實內建了一條 `Fake Google Bot`，專門抓這種自稱 Googlebot，但來源根本驗不過的冒牌貨。
 
-## Cloudflare 怎麼認證 bot
+## 怎麼確認爬蟲是真是假？
 
-Cloudflare 文件裡的定義：
+要在 Cloudflare 拿到 Verified bot（已驗證爬蟲）的資格，前提是爬蟲必須誠實表明身分和用途。Cloudflare 會透過公開 IP 清單、reverse DNS 或是請求簽章來驗明正身。
 
-A Verified bot is a bot or agent that Cloudflare has confirmed is transparent about who it is and what it does: it represents itself honestly and does not abuse the access that honesty earns.
+但驗過身分只是第一步，後續還得守規矩：乖乖讀 `robots.txt`、控制抓取頻率、不攻擊網站。要是累犯違規，整個組織底下的 bot 認證都可能會被拔掉。
 
-身分可以用公開的 IP 清單、reverse DNS 或替請求簽章來證明。通過之後還要守規矩：遵守 `robots.txt`、請求頻率合理、不攻擊網站，屢次違規的組織，旗下所有 bot 的認證都可能被撤掉。
+## 每支 bot 都有分類標籤
 
-## 每支 bot 都有一張標籤
+拿到認證的 bot 會依照用途被分進 17 種類別。像是 Googlebot 屬於 Search Engine Crawler，而平常在 Slack 或 Discord 貼連結時跑來抓預覽圖的，則歸類在 Page Preview。
 
-通過認證的 bot 會被歸到一個分類。Googlebot、Bingbot 是 Search Engine Crawler，Slack、Discord 貼連結時抓預覽的是 Page Preview，RSS 和 podcast 的更新器是 Feed Fetcher。
+寫 WAF 規則時，可以直接拿分類當條件。
 
-分類總共 17 種，寫 WAF 規則時可以直接拿來當條件。
+## 與 AI 相關的三種分類
 
-## AI 爬蟲分成三種
+在這 17 種分類裡，跟 AI 有關的一共有三種，差別在於它們把資料抓回去之後要幹嘛：
 
-17 種裡有三種跟 AI 有關，差在抓了內容拿去做什麼。
+- **AI Crawler**：抓回去訓練模型用的，例如 OpenAI 用來訓練的爬蟲。
+- **AI Assistant**：使用者叫它去看網頁時才會出動，像是 `Perplexity-User`。
+- **AI Search**：用來建立 AI 搜尋索引的，像是 `OAI-SearchBot`。
 
-- AI Crawler 拿去訓練模型，像 ChatGPT 的爬蟲
-- AI Assistant 有人叫才來，像 Perplexity-User
-- AI Search 拿去做 AI 搜尋，像 OAI-SearchBot
+如果你的底線是「文章可以出現在 AI 搜尋結果裡，但不想被拿去免費練模型」，那只要針對第一種下手就夠了。
 
-不想讓文章被拿去訓練，又想被 AI 搜尋找到，就只擋第一種。
-
-## 只擋訓練用的那種
+## WAF 只擋訓練用爬蟲
 
 ![banner](/post-images/cloudflare-verified-bots/waf-category.webp)
 
-`cf.client.bot` 判斷是不是 verified bot，`cf.verified_bot_category` 拿到分類。條件寫 `cf.verified_bot_category eq "AI Crawler"`、動作選 Block，Googlebot 照樣進得來。
+Custom Rules 裡先用 `cf.client.bot` 確認是已驗證的 bot，再用 `cf.verified_bot_category` 拿分類。
 
-Cloudflare 從 2026/07 起還加了一套看 bot「做什麼」的標籤，加上替請求簽章的細節，這篇裝不下，想看的話在留言跟我說。
+條件寫 `cf.verified_bot_category eq "AI Crawler"`、動作選 Block，Googlebot 照樣進得來。
+
+Cloudflare 從 2026/07 起還多了一套看 bot「做什麼」的標籤，加上請求簽章的細節，這篇塞不下，想看留言跟我說。
