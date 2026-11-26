@@ -17,6 +17,8 @@ cta:
 
 # 只擋 AI 爬蟲，不擋 Google
 
+![banner](/post-images/cloudflare-verified-bots/cover.webp)
+
 ## 任何爬蟲都能自稱 Googlebot
 
 ![banner](/post-images/cloudflare-verified-bots/fake-googlebot.webp)
@@ -27,7 +29,7 @@ User-Agent 說穿了就是請求裡自己報上名號的那一行，誰想寫 Go
 
 ## 怎麼確認爬蟲是真是假？
 
-要在 Cloudflare 拿到 Verified bot（已驗證爬蟲）的資格，前提是爬蟲必須誠實表明身分和用途。Cloudflare 會透過公開 IP 清單、reverse DNS 或是請求簽章來驗明正身。
+要在 Cloudflare 拿到 Verified bot 的資格，前提是爬蟲必須誠實表明身分和用途。Cloudflare 會透過公開 IP 清單、reverse DNS 或是請求簽章來驗明正身。
 
 但驗過身分只是第一步，後續還得守規矩：乖乖讀 `robots.txt`、控制抓取頻率、不攻擊網站。要是累犯違規，整個組織底下的 bot 認證都可能會被拔掉。
 
