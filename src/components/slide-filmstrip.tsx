@@ -105,7 +105,12 @@ export function SlideFilmstrip({
   onReorder,
 }: SlideFilmstripProps) {
   return (
-    <div className="bg-background flex shrink-0 items-center gap-3 p-2.5">
+    // 窄螢幕是整頁往下捲的長頁面，頁面列黏在畫面底部才一直點得到；
+    // 桌機的外殼本來就是固定高度，它已經在底部了
+    <div
+      data-slot="slide-filmstrip"
+      className="bg-background flex shrink-0 items-center gap-3 p-2.5 max-lg:sticky max-lg:bottom-0 max-lg:z-20 max-lg:border-t"
+    >
       {/*
         純讀數，不是按鈕 —— 這一列不會收起來，所以沒有可按的東西。
         高度對齊縮圖，視覺上是同一列的一部分。

@@ -38,7 +38,8 @@ export function useFitScale(maxScale: number, initial = 0.4) {
  * 一張版型剛好填滿畫布區，跟 Canva 一樣。
  *
  * 高度要量捲動容器（ref 的父層），量 ref 自己只會拿到內容總高。
- * 窄螢幕時捲動容器就是頁面流，高度必然夠大，自然由寬度決定。
+ * 窄螢幕時捲動容器就是頁面流，它的高度是所有卡片加起來 —— 這時改量視窗，
+ * 扣掉黏在底部的頁面列，一張一樣剛好塞得進一個畫面，不用捲半天才看完一張。
  *
  * 上下留白通常比左右大：浮動快捷列是浮在卡片正上方的，第一張的上面要留得下它。
  *
@@ -56,7 +57,9 @@ export function useCanvasScale(maxScale: number, gutterX: number, gutterY: numbe
 
     const fit = () => {
       const width = node.clientWidth - gutterX * 2;
-      const height = box.clientHeight - gutterY * 2;
+      const strip = document.querySelector<HTMLElement>('[data-slot="slide-filmstrip"]');
+      const visible = Math.min(box.clientHeight, window.innerHeight - (strip?.offsetHeight ?? 0));
+      const height = visible - gutterY * 2;
       if (width > 0 && height > 0) {
         setScale(Math.min(width / CANVAS.width, height / CANVAS.height, maxScale));
       }
@@ -65,8 +68,12 @@ export function useCanvasScale(maxScale: number, gutterX: number, gutterY: numbe
     const observer = new ResizeObserver(fit);
     observer.observe(node);
     observer.observe(box);
+    window.addEventListener("resize", fit);
     fit();
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", fit);
+    };
   }, [maxScale, gutterX, gutterY]);
 
   return { ref, scale };

@@ -157,14 +157,14 @@ test("內文欄位長出內容的高度，不出現自己的捲軸", async ({ pa
   expect(fits, "field-sizing: content 應該讓它跟著內容長高").toBe(true);
 });
 
-test("頂列讀數跟著選取改變，快捷列選中才出現", async ({ page }) => {
+test("頂列讀數跟著選取改變，頁面工具列一直開著", async ({ page }) => {
   const readout = page.getByText(/1080×1350/);
-  // 快捷列是靠 opacity 收起來的（要保留 transition），所以量 CSS 不是量 visible
-  const quickBar = page.locator('[data-slot="slide-quickbar"]').first();
+  const toolbar = page.locator('[data-slot="slide-quickbar"]').first();
 
-  // 沒選東西的時候只報整份貼文的規格，快捷列收著
+  // 沒選東西的時候只報整份貼文的規格；工具列不用先點就看得到（觸控沒有 hover）
   await expect(readout).toHaveText("1080×1350 · 05P");
-  await expect(quickBar).toHaveCSS("opacity", "0");
+  await expect(toolbar).toBeVisible();
+  await expect(toolbar).toHaveCSS("opacity", "1");
 
   // 點畫布的左上角，避開可以直接改的文字
   await page
@@ -172,9 +172,8 @@ test("頂列讀數跟著選取改變，快捷列選中才出現", async ({ page 
     .first()
     .click({ position: { x: 8, y: 8 } });
 
-  // 選了才展開那一張的頁次與類型，快捷列跟著浮出來
+  // 選了才展開那一張的頁次與類型
   await expect(readout).toHaveText("01 / 05 · 封面 · 1080×1350");
-  await expect(quickBar).toHaveCSS("opacity", "1");
 });
 
 test("點縮圖會選取那一張，並把預覽捲到它", async ({ page }) => {
@@ -224,4 +223,38 @@ test("點畫布上的文字可以直接改，Esc 還原", async ({ page }) => {
   await card.locator("textarea").fill("又改了一次");
   await card.locator("textarea").press("Escape");
   await expect(card, "Esc 還原成這次點進來之前的樣子").toContainText("改過的標題");
+});
+
+test("窄螢幕的逐頁不開表單，頁面動作在每張上方的工具列", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.getByRole("button", { name: "逐頁" }).click();
+
+  await expect(page.locator("#editor-panel"), "表單疊在預覽上面就看不到正在改的那張").toBeHidden();
+  const slides = page.locator("[data-preview-slide]");
+  await expect(slides).toHaveCount(SLIDES.length);
+
+  // 不用先選，工具列就在每張上方
+  const bar = slides.nth(1).locator('[data-slot="slide-quickbar"]');
+  await expect(bar).toBeVisible();
+  const box = (await bar.boundingBox())!;
+  expect(box.x, "工具列不能超出畫面").toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(375);
+
+  // 圖只有換圖與移除兩個動作；移除之後同一顆變成「加圖」
+  await bar.getByRole("button", { name: "移除圖片" }).click();
+  await expect(bar.getByRole("button", { name: "加圖" })).toBeVisible();
+  await expect(bar.getByRole("button", { name: "移除圖片" })).toHaveCount(0);
+
+  await bar.getByRole("button", { name: "刪除這一頁" }).click();
+  await expect(slides).toHaveCount(SLIDES.length - 1);
+});
+
+test("重新整理後停在原本的面板", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  await page.getByRole("button", { name: "設定" }).click();
+  await expect(page.getByLabel("帳號")).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "設定" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("帳號")).toBeVisible();
 });

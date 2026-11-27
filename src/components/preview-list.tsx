@@ -2,7 +2,8 @@
 
 import { DownloadIcon } from "lucide-react";
 import { SlideCard } from "./slide-card";
-import { Button } from "@/components/ui/button";
+import { Tool } from "./slide-toolbar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { CANVAS } from "@/lib/theme";
 import { useCanvasScale } from "@/lib/use-fit-scale";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,10 @@ interface PreviewListProps {
   onDownload: (slide: Slide, index: number) => void;
   /** 在畫布上直接改字（見 SlideText） */
   onEdit: (id: string, changes: Partial<Slide>) => void;
+  /** 浮動工具列裡的頁面動作（排序、刪除、圖片，見 SlideToolbar） */
+  renderToolbar: (slide: Slide, index: number) => React.ReactNode;
+  /** 清單最後的新增按鈕。窄螢幕的逐頁沒有表單，靠這裡加頁 */
+  footer?: React.ReactNode;
 }
 
 export function PreviewList({
@@ -44,85 +49,88 @@ export function PreviewList({
   onSelect,
   onDownload,
   onEdit,
+  renderToolbar,
+  footer,
 }: PreviewListProps) {
   const { ref, scale } = useCanvasScale(MAX_SCALE, GUTTER_X, GUTTER_Y);
 
   return (
-    <div
-      ref={ref}
-      className="flex flex-col items-center gap-14"
-      style={{ padding: `${GUTTER_Y}px ${GUTTER_X}px` }}
-    >
-      {slides.map((slide, index) => {
-        const active = activeId === slide.id;
+    // 一個 Provider 包住所有工具列：指過第一顆之後，滑到旁邊那顆的提示就不用再等
+    <TooltipProvider delay={300}>
+      <div
+        ref={ref}
+        className="flex flex-col items-center gap-16"
+        style={{ padding: `${GUTTER_Y}px ${GUTTER_X}px` }}
+      >
+        {slides.map((slide, index) => {
+          const active = activeId === slide.id;
 
-        return (
-          <div
-            key={slide.id}
-            data-active={active || undefined}
-            data-preview-slide={slide.id}
-            className="group/slide relative"
-            style={{ width: CANVAS.width * scale }}
-          >
-            {/*
-              兩層工具列的下層：貼在這一張正上方的浮動快捷列，
-              指到、選到、或鍵盤 focus 進去才浮出來。
-
-              深色藥丸壓在淺灰檯面上，跟 Polotno 貼在選中物件上方的那條一樣 ——
-              五張預覽就常駐五條讀數列的話，工具會比作品還吵。
-              pointer-events 跟著透明度一起關，收起來的時候不能擋到底下的畫布。
-            */}
+          return (
             <div
-              data-slot="slide-quickbar"
-              className="pointer-events-none absolute top-0 left-1/2 z-10 flex -translate-x-1/2 -translate-y-[calc(100%+0.625rem)] items-center gap-0.5 rounded-full bg-foreground p-1 opacity-0 shadow-md transition-opacity duration-100 group-focus-within/slide:pointer-events-auto group-focus-within/slide:opacity-100 group-hover/slide:pointer-events-auto group-hover/slide:opacity-100 group-data-active/slide:pointer-events-auto group-data-active/slide:opacity-100"
+              key={slide.id}
+              data-active={active || undefined}
+              data-preview-slide={slide.id}
+              className="group/slide relative"
+              style={{ width: CANVAS.width * scale }}
             >
-              <span className="px-1.5 font-mono text-[0.7rem] tracking-wider text-background/70 tabular-nums">
+              {/*
+              頁次是次要資訊，安靜地放在這一張的左上角。手機寬度下工具列幾乎跟
+              卡片一樣寬，沒地方放，就交給頂列的讀數。
+            */}
+              <span className="text-muted-foreground absolute top-0 left-0 -translate-y-[calc(100%+1.125rem)] font-mono text-xs tracking-wider tabular-nums max-sm:hidden">
                 {String(index + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}
               </span>
-              <Button
-                variant="ghost"
-                size="xs"
-                aria-label={`下載第 ${index + 1} 張 PNG`}
-                className="text-background/80 hover:bg-background/15 hover:text-background focus-visible:ring-background/40"
-                onClick={() => onDownload(slide, index)}
-              >
-                <DownloadIcon data-icon="inline-start" />
-                PNG
-              </Button>
-            </div>
 
-            {/*
+              {/*
+              每張右上方常駐的頁面工具列，跟 Canva 每頁上方那排一樣。
+              原本是指到或選到才浮出來，但觸控螢幕沒有 hover，
+              不先點一下根本不知道有這些動作 —— 所以一直開著。
+            */}
+              <div
+                data-slot="slide-quickbar"
+                className="absolute top-0 right-0 z-10 flex -translate-y-[calc(100%+0.625rem)] items-center gap-0.5"
+              >
+                {renderToolbar(slide, index)}
+                {/* 單張下載很少用（通常是整份 ZIP），所以只是工具列最後一顆不起眼的 icon */}
+                <Tool label={`下載第 ${index + 1} 張 PNG`} onClick={() => onDownload(slide, index)}>
+                  <DownloadIcon />
+                </Tool>
+              </div>
+
+              {/*
               不是 <button>：畫布裡的文字點了會變成 textarea，
               按鈕裡放輸入框是無效的 HTML，Firefox 還會把點擊吃掉不給 focus。
               用鍵盤的話，Tab 進到畫布裡任一段字時 onFocus 一樣會選到這一張；
               縮圖列也能選頁。
             */}
-            {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- 鍵盤路徑走 onFocus 與縮圖列 */}
-            <div
-              onClick={() => onSelect(slide.id)}
-              onFocus={() => onSelect(slide.id)}
-              className={cn(
-                // 沒有外框：畫布靠陰影從冷灰檯面上浮起來就夠了。
-                // 陰影也只要很輕的一層，太重會顯髒，也會蓋過版型自己的顏色
-                "block overflow-hidden rounded-lg shadow-[0_1px_3px_rgb(14_19_24/0.1),0_8px_24px_-8px_rgb(14_19_24/0.14)] transition-[box-shadow,--tw-ring-color] duration-100",
-                // 選取是狀態不是裝飾，所以它是唯一還畫線的地方 —— 也是全站唯一的彩色
-                active && "ring-ring ring-2",
-              )}
-              style={{ width: CANVAS.width * scale, height: CANVAS.height * scale }}
-            >
-              <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
-                <SlideCard
-                  slide={slide}
-                  handle={handle}
-                  timestamp={timestamp}
-                  theme={theme}
-                  onEdit={(changes) => onEdit(slide.id, changes)}
-                />
+              {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- 鍵盤路徑走 onFocus 與縮圖列 */}
+              <div
+                onClick={() => onSelect(slide.id)}
+                onFocus={() => onSelect(slide.id)}
+                className={cn(
+                  // 沒有外框：畫布靠陰影從冷灰檯面上浮起來就夠了。
+                  // 陰影也只要很輕的一層，太重會顯髒，也會蓋過版型自己的顏色
+                  "block overflow-hidden rounded-lg shadow-[0_1px_3px_rgb(14_19_24/0.1),0_8px_24px_-8px_rgb(14_19_24/0.14)] transition-[box-shadow,--tw-ring-color] duration-100",
+                  // 選取是狀態不是裝飾，所以它是唯一還畫線的地方 —— 也是全站唯一的彩色
+                  active && "ring-ring ring-2",
+                )}
+                style={{ width: CANVAS.width * scale, height: CANVAS.height * scale }}
+              >
+                <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
+                  <SlideCard
+                    slide={slide}
+                    handle={handle}
+                    timestamp={timestamp}
+                    theme={theme}
+                    onEdit={(changes) => onEdit(slide.id, changes)}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+        {footer && <div className="lg:hidden">{footer}</div>}
+      </div>
+    </TooltipProvider>
   );
 }

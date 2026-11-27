@@ -36,9 +36,9 @@ test("每張頁面的圖片都落在版位上，且不會越過 SWIPE 膠囊", a
   );
 
   const expected = [
-    { width: METRICS.contentWidth, height: METRICS.image.banner.height },
-    { width: METRICS.image.square.size, height: METRICS.image.square.size },
-    { width: METRICS.contentWidth, height: METRICS.image.banner.height },
+    { width: METRICS.contentWidth, height: METRICS.contentWidth / 2 }, // 內頁橫幅高度隨比例，600×300 測試圖
+    { width: METRICS.contentWidth, height: (METRICS.contentWidth * 2) / 3 }, // 600×400，高度跟著比例
+    { width: METRICS.contentWidth, height: METRICS.contentWidth / 2 }, // 內頁橫幅高度隨比例，600×300 測試圖
     { width: METRICS.cta.image.width, height: METRICS.cta.image.height },
   ];
 

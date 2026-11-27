@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  BanIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  PlusIcon,
-  RectangleHorizontalIcon,
-  SquareIcon,
-  Trash2Icon,
-} from "lucide-react";
+import { ChevronDownIcon, ChevronUpIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { ImagePicker } from "./image-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,53 +9,15 @@ import { Field, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { Item, ItemActions, ItemHeader, ItemTitle } from "@/components/ui/item";
 import { Textarea } from "@/components/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { makeCtaSlide } from "@/lib/markdown";
-import { KIND_LABEL, newId, type ImageShape, type Slide } from "@/lib/types";
+import { KIND_LABEL, newId, type Slide } from "@/lib/types";
 
-const SHAPES: { value: ImageShape; label: string; icon: typeof SquareIcon }[] = [
-  { value: "banner", label: "橫幅", icon: RectangleHorizontalIcon },
-  { value: "square", label: "正方形", icon: SquareIcon },
-  { value: "none", label: "不放圖", icon: BanIcon },
-];
-
-function ShapeField({
-  value,
-  onChange,
-}: {
-  value: ImageShape;
-  onChange: (shape: ImageShape) => void;
-}) {
-  return (
-    <Field>
-      <FieldTitle>圖片版位</FieldTitle>
-      <ToggleGroup
-        value={[value]}
-        onValueChange={([next]) => next && onChange(next as ImageShape)}
-        variant="default"
-      >
-        {SHAPES.map(({ value: shape, label, icon: Icon }) => (
-          <ToggleGroupItem key={shape} value={shape} aria-label={label}>
-            <Icon data-icon="inline-start" />
-            {label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
-    </Field>
-  );
-}
-
-interface EditorSlidesProps {
-  /** 上傳的圖以貼文 id 分資料夾，所以圖片欄位要知道自己屬於哪一篇 */
-  postId: string;
-  slides: Slide[];
-  onChange: (slides: Slide[]) => void;
-  activeId: string | null;
-  onFocus: (id: string) => void;
-}
-
-export function EditorSlides({ postId, slides, onChange, activeId, onFocus }: EditorSlidesProps) {
+/**
+ * 動到頁面結構的操作。逐頁表單（桌機）與預覽底下的控制列（窄螢幕）共用，
+ * 兩邊改的都是同一份 slides。
+ */
+export function slideOps(slides: Slide[], onChange: (slides: Slide[]) => void) {
   const patch = (id: string, changes: Partial<Slide>) =>
     onChange(
       slides.map((slide) => (slide.id === id ? ({ ...slide, ...changes } as Slide) : slide)),
@@ -88,12 +42,104 @@ export function EditorSlides({ postId, slides, onChange, activeId, onFocus }: Ed
       heading: "新頁標題",
       body: "",
       imageUrl: "",
-      imageShape: "banner",
     });
     onChange(next);
   };
 
+  return { patch, move, remove, addContent };
+}
+
+type SlideOps = ReturnType<typeof slideOps>;
+
+/** 上移、下移、在後面加一張內頁、刪除 */
+function SlideActions({
+  ops,
+  slide,
+  index,
+  count,
+}: {
+  ops: SlideOps;
+  slide: Slide;
+  index: number;
+  count: number;
+}) {
+  return (
+    <ItemActions className="gap-1">
+      <ButtonGroup>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => ops.move(index, -1)}
+          disabled={index === 0}
+          aria-label="上移"
+        >
+          <ChevronUpIcon />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => ops.move(index, 1)}
+          disabled={index === count - 1}
+          aria-label="下移"
+        >
+          <ChevronDownIcon />
+        </Button>
+      </ButtonGroup>
+      <Button variant="ghost" size="xs" onClick={() => ops.addContent(index)}>
+        <PlusIcon data-icon="inline-start" />
+        內頁
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="刪除這一頁"
+        className="text-muted-foreground hover:text-destructive"
+        onClick={() => ops.remove(slide.id)}
+      >
+        <Trash2Icon />
+      </Button>
+    </ItemActions>
+  );
+}
+
+/** 清單最後的「新增內頁」與「結尾 CTA」 */
+export function AddSlideButtons({
+  slides,
+  onChange,
+}: {
+  slides: Slide[];
+  onChange: (slides: Slide[]) => void;
+}) {
+  const { addContent } = slideOps(slides, onChange);
   const hasCta = slides.some((slide) => slide.kind === "cta");
+  return (
+    <div className="flex gap-2 pb-2">
+      <Button variant="secondary" size="sm" onClick={() => addContent(slides.length - 1)}>
+        <PlusIcon data-icon="inline-start" />
+        新增內頁
+      </Button>
+      {!hasCta && (
+        <Button variant="secondary" size="sm" onClick={() => onChange([...slides, makeCtaSlide()])}>
+          <PlusIcon data-icon="inline-start" />
+          結尾 CTA
+        </Button>
+      )}
+    </div>
+  );
+}
+
+interface EditorSlidesProps {
+  /** 上傳的圖以貼文 id 分資料夾，所以圖片欄位要知道自己屬於哪一篇 */
+  postId: string;
+  slides: Slide[];
+  onChange: (slides: Slide[]) => void;
+  activeId: string | null;
+  onFocus: (id: string) => void;
+}
+
+export function EditorSlides({ postId, slides, onChange, activeId, onFocus }: EditorSlidesProps) {
+  const ops = slideOps(slides, onChange);
+  const { patch } = ops;
 
   return (
     <div className="flex shrink-0 flex-col gap-3">
@@ -126,41 +172,7 @@ export function EditorSlides({ postId, slides, onChange, activeId, onFocus }: Ed
                 </Badge>
               )}
             </ItemTitle>
-            <ItemActions className="gap-1">
-              <ButtonGroup>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => move(index, -1)}
-                  disabled={index === 0}
-                  aria-label="上移"
-                >
-                  <ChevronUpIcon />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  onClick={() => move(index, 1)}
-                  disabled={index === slides.length - 1}
-                  aria-label="下移"
-                >
-                  <ChevronDownIcon />
-                </Button>
-              </ButtonGroup>
-              <Button variant="ghost" size="xs" onClick={() => addContent(index)}>
-                <PlusIcon data-icon="inline-start" />
-                內頁
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                aria-label="刪除這一頁"
-                className="text-muted-foreground hover:text-destructive"
-                onClick={() => remove(slide.id)}
-              >
-                <Trash2Icon />
-              </Button>
-            </ItemActions>
+            <SlideActions ops={ops} slide={slide} index={index} count={slides.length} />
           </ItemHeader>
 
           <FieldGroup className="gap-3">
@@ -174,15 +186,6 @@ export function EditorSlides({ postId, slides, onChange, activeId, onFocus }: Ed
                     onChange={(event) => patch(slide.id, { title: event.target.value })}
                   />
                 </Field>
-                <ShapeField
-                  value={slide.imageShape}
-                  onChange={(imageShape) => patch(slide.id, { imageShape })}
-                />
-                <ImagePicker
-                  postId={postId}
-                  value={slide.imageUrl}
-                  onChange={(imageUrl) => patch(slide.id, { imageUrl })}
-                />
               </>
             )}
 
@@ -215,15 +218,6 @@ export function EditorSlides({ postId, slides, onChange, activeId, onFocus }: Ed
                     onChange={(event) => patch(slide.id, { body: event.target.value })}
                   />
                 </Field>
-                <ShapeField
-                  value={slide.imageShape}
-                  onChange={(imageShape) => patch(slide.id, { imageShape })}
-                />
-                <ImagePicker
-                  postId={postId}
-                  value={slide.imageUrl}
-                  onChange={(imageUrl) => patch(slide.id, { imageUrl })}
-                />
               </>
             )}
 
@@ -245,11 +239,6 @@ export function EditorSlides({ postId, slides, onChange, activeId, onFocus }: Ed
                     onChange={(event) => patch(slide.id, { headline: event.target.value })}
                   />
                 </Field>
-                <ImagePicker
-                  postId={postId}
-                  value={slide.imageUrl}
-                  onChange={(imageUrl) => patch(slide.id, { imageUrl })}
-                />
                 <Field>
                   <FieldTitle>互動數字（讚 / 留言 / 分享 / 收藏）</FieldTitle>
                   <div className="grid grid-cols-4 gap-2">
@@ -270,26 +259,16 @@ export function EditorSlides({ postId, slides, onChange, activeId, onFocus }: Ed
                 </Field>
               </>
             )}
+            <ImagePicker
+              postId={postId}
+              value={slide.imageUrl}
+              onChange={(imageUrl) => patch(slide.id, { imageUrl })}
+            />
           </FieldGroup>
         </Item>
       ))}
 
-      <div className="flex gap-2 pb-2">
-        <Button variant="secondary" size="sm" onClick={() => addContent(slides.length - 1)}>
-          <PlusIcon data-icon="inline-start" />
-          新增內頁
-        </Button>
-        {!hasCta && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onChange([...slides, makeCtaSlide()])}
-          >
-            <PlusIcon data-icon="inline-start" />
-            結尾 CTA
-          </Button>
-        )}
-      </div>
+      <AddSlideButtons slides={slides} onChange={onChange} />
     </div>
   );
 }

@@ -66,10 +66,10 @@ test("內頁的頁碼在排序後重新編號，跟著新順序走", async ({ pa
           .map((slide) => (slide.kind === "content" ? `${slide.badge} ${slide.heading}` : "")),
       );
 
-  expect(await numbering()).toEqual(["01 橫幅版位", "02 正方形版位", "03 超長內文"]);
+  expect(await numbering()).toEqual(["01 橫幅版位", "02 比例不同的圖", "03 超長內文"]);
 
   // 第二張（橫幅版位）拖到第四張的位置 → 它變成最後一個內頁
   await dragThumb(page, 2, 4);
 
-  await expect.poll(numbering).toEqual(["01 正方形版位", "02 超長內文", "03 橫幅版位"]);
+  await expect.poll(numbering).toEqual(["01 比例不同的圖", "02 超長內文", "03 橫幅版位"]);
 });

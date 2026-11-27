@@ -118,10 +118,9 @@ function CoverBody({
   onEdit: EditSlide<Extract<Slide, { kind: "cover" }>>;
 }) {
   const banner = METRICS.image.coverBanner;
-  const square = METRICS.image.square;
   return (
     <>
-      {slide.imageUrl && slide.imageShape === "banner" && (
+      {slide.imageUrl && (
         <img
           src={slide.imageUrl}
           alt=""
@@ -134,15 +133,6 @@ function CoverBody({
             maxHeight: banner.maxHeight,
             objectFit: "contain",
           }}
-        />
-      )}
-      {slide.imageUrl && slide.imageShape === "square" && (
-        <ImageSlot
-          url={slide.imageUrl}
-          top={square.top}
-          left={square.left}
-          width={square.size}
-          height={square.size}
         />
       )}
       <div
@@ -219,9 +209,9 @@ function ContentBody({
 }
 
 /**
- * 內文 + 圖片。圖片錨在內容區底部並保有完整版位 —— 原稿也是這樣排的
- * （內文固定高度、圖片緊接在下方）。這樣內文再長也只會壓到自己，
- * 不會把圖片擠成零高度而無聲消失。
+ * 內文 + 圖片。圖片緊接在內文下方，橫幅是內容區滿寬、高度隨圖片比例。
+ * 圖片不縮（flexShrink 0），內文太長時被裁的是內文自己 —— 內文層的
+ * scrollHeight 會大於 clientHeight，量得出來，圖片不會無聲消失。
  */
 function ContentArea({
   slide,
@@ -232,12 +222,6 @@ function ContentArea({
   palette: Palette;
   onEdit: EditSlide<Extract<Slide, { kind: "content" }>>;
 }) {
-  const hasImage = Boolean(slide.imageUrl) && slide.imageShape !== "none";
-  const square = slide.imageShape === "square" ? METRICS.image.square.size : null;
-  // 橫幅在內頁是內容區滿寬（比封面的 banner 略窄，內容區本來就窄一點）
-  const imageWidth = square ?? contentWidth;
-  const imageHeight = square ?? METRICS.image.banner.height;
-
   return (
     <div
       style={{
@@ -247,13 +231,16 @@ function ContentArea({
         width: contentWidth,
         bottom: CONTENT_BOTTOM,
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        gap: METRICS.bodyImageGap,
       }}
     >
       <div
         style={{
-          position: "absolute",
-          inset: 0,
-          bottom: hasImage ? imageHeight + METRICS.bodyImageGap : 0,
+          flex: "0 1 auto",
+          minHeight: 0,
+          alignSelf: "stretch",
           overflow: "hidden",
           fontSize: METRICS.body.fontSize,
           lineHeight: METRICS.body.lineHeight,
@@ -265,16 +252,15 @@ function ContentArea({
           <RichText value={slide.body} palette={palette} />
         </SlideText>
       </div>
-      {hasImage && (
+      {slide.imageUrl && (
         <img
           src={slide.imageUrl}
           alt=""
           style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            width: imageWidth,
-            height: imageHeight,
+            flexShrink: 0,
+            display: "block",
+            width: contentWidth,
+            height: "auto",
             objectFit: "contain",
           }}
         />

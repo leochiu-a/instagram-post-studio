@@ -13,10 +13,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { EditorMarkdown } from "@/components/editor-markdown";
-import { EditorSlides } from "@/components/editor-slides";
+import { AddSlideButtons, EditorSlides, slideOps } from "@/components/editor-slides";
 import { PanelResizer } from "@/components/panel-resizer";
 import { PreviewList } from "@/components/preview-list";
 import { SlideFilmstrip } from "@/components/slide-filmstrip";
+import { SlideToolbar } from "@/components/slide-toolbar";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Field, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field";
@@ -55,6 +56,30 @@ const PANELS = [
 type PanelName = (typeof PANELS)[number]["value"];
 
 /**
+ * 正在用哪個面板跟面板寬度一樣是「我習慣怎麼編」的偏好，不是貼文的屬性 ——
+ * 留在 localStorage，重新整理或換一篇貼文都停在同一個面板。
+ */
+const PANEL_KEY = "ig-post-studio:panel";
+
+function usePanel() {
+  const [panel, setPanel] = useState<PanelName>("markdown");
+
+  useEffect(() => {
+    const stored = localStorage.getItem(PANEL_KEY);
+    const known = PANELS.find(({ value }) => value === stored);
+    // oxlint-disable-next-line react/set-state-in-effect -- localStorage 在 SSR 讀不到，只能掛載後才還原
+    if (known) setPanel(known.value);
+  }, []);
+
+  const choose = (next: PanelName) => {
+    setPanel(next);
+    localStorage.setItem(PANEL_KEY, next);
+  };
+
+  return [panel, choose] as const;
+}
+
+/**
  * 編輯欄與預覽是不是左右並排（lg）。窄螢幕是上下堆疊的一條長頁面，
  * 這時候為了「跟著編輯的地方」去捲預覽，等於把正在打字的欄位捲走。
  */
@@ -83,7 +108,7 @@ function PanelLabel({ children }: { children: React.ReactNode }) {
 export function PostEditor({ postId }: { postId: string }) {
   const { post, update, setSlides } = usePost(postId);
   const hydrated = useHydrated();
-  const [panel, setPanel] = useState<PanelName>("markdown");
+  const [panel, setPanel] = usePanel();
   const { width: panelWidth, resize } = usePanelWidth();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -166,6 +191,7 @@ export function PostEditor({ postId }: { postId: string }) {
   }
 
   const draft = post.draft;
+  const ops = slideOps(post.slides, setSlides);
   const activeIndex = post.slides.findIndex((slide) => slide.id === activeId);
   const activeSlide = activeIndex === -1 ? null : post.slides[activeIndex];
 
@@ -273,7 +299,12 @@ export function PostEditor({ postId }: { postId: string }) {
         */}
         <div
           id="editor-panel"
-          className="relative flex min-w-0 flex-col lg:w-(--panel-width) lg:shrink-0"
+          className={cn(
+            "relative flex min-w-0 flex-col lg:w-(--panel-width) lg:shrink-0",
+            // 窄螢幕的逐頁不另開一張表單：控制列直接長在每張預覽底下（見 PreviewList），
+            // 表單疊在預覽上面的話，改的時候根本看不到那一張
+            panel === "slides" && "max-lg:hidden",
+          )}
           style={{ ["--panel-width" as string]: `${panelWidth}px` }}
         >
           <div className="flex min-h-0 flex-1 flex-col gap-5 p-5 lg:overflow-y-auto">
@@ -374,12 +405,20 @@ export function PostEditor({ postId }: { postId: string }) {
               activeId={activeId}
               onSelect={setActiveId}
               onDownload={(slide, index) => void exportOne(slide, index)}
-              onEdit={(id, changes) =>
-                setSlides(
-                  post.slides.map((slide) =>
-                    slide.id === id ? ({ ...slide, ...changes } as Slide) : slide,
-                  ),
-                )
+              onEdit={(id, changes) => ops.patch(id, changes)}
+              renderToolbar={(slide, index) => (
+                <SlideToolbar
+                  ops={ops}
+                  slide={slide}
+                  index={index}
+                  count={post.slides.length}
+                  postId={postId}
+                />
+              )}
+              footer={
+                panel === "slides" ? (
+                  <AddSlideButtons slides={post.slides} onChange={setSlides} />
+                ) : undefined
               }
             />
           </section>

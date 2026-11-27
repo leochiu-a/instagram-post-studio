@@ -20,7 +20,7 @@ const LONG_BODY = Array.from(
 ).join("\n");
 
 /**
- * 一篇貼文的正文，跟磁碟上那個 .md 檔一模一樣 —— 版位就寫在圖片的 alt 裡。
+ * 一篇貼文的正文，跟磁碟上那個 .md 檔一模一樣。
  * 測試不再自己組 Slide 陣列：頁面是從這份文字解析出來的，手寫一份等於在驗
  * 一個實際上不存在的狀態。
  */
@@ -36,9 +36,9 @@ export const BODY = `# 封面大標測試
 
 這一行有 *斜體* 與 **粗體**。
 
-## 正方形版位
+## 比例不同的圖
 
-![square](${solidImage(CONTENT_IMAGE, 600, 600)})
+![](${solidImage(CONTENT_IMAGE, 600, 400)})
 
 短內文。
 

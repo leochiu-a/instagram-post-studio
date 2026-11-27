@@ -34,9 +34,8 @@ export function EditorMarkdown({ value, onChange, onCursor }: EditorMarkdownProp
         <div className="text-muted-foreground space-y-2 pt-2 pl-4.5 text-xs leading-relaxed">
           <p>
             <Syntax># 標題</Syntax> 為封面，<Syntax>## 標題</Syntax> 各切一張內頁（頁碼自動編），
-            <Syntax>![版位](網址)</Syntax> 放圖（版位是 <Syntax>banner</Syntax> /{" "}
-            <Syntax>square</Syntax> / <Syntax>none</Syntax>），<Syntax>- </Syntax> 是項目符號。 結尾
-            CTA 頁會自動補上。
+            <Syntax>![](網址)</Syntax> 放圖，<Syntax>- </Syntax> 是項目符號。 結尾 CTA
+            頁會自動補上。
           </p>
           <p>
             <Syntax>**粗體**</Syntax>（<Syntax>⌘B</Syntax>）套強調色、

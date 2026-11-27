@@ -1,14 +1,12 @@
 export type ThemeName = "dark" | "light";
 
-export type ImageShape = "banner" | "square" | "none";
-
 export type Slide =
   | {
       id: string;
       kind: "cover";
       title: string;
+      /** 空字串就是沒有圖。圖一律是橫幅：內容區滿寬、高度隨圖片比例 */
       imageUrl: string;
-      imageShape: ImageShape;
     }
   | {
       id: string;
@@ -19,7 +17,6 @@ export type Slide =
       /** 支援 **粗體**、`程式碼` 與 "- " 開頭的項目符號。 */
       body: string;
       imageUrl: string;
-      imageShape: ImageShape;
     }
   | {
       id: string;
