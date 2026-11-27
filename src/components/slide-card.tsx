@@ -1,8 +1,12 @@
 // oxlint-disable react/no-array-index-key -- 這裡的 index 對應固定的版型欄位與逐行渲染，順序不會變
 import { Bookmark, Comment, CurvedArrow, Heart, Send, SwipeHand } from "./icons";
 import { RichText } from "./rich-text";
+import { SlideText } from "./slide-text";
 import { CANVAS, METRICS, PALETTES, type Palette } from "@/lib/theme";
 import type { Slide, ThemeName } from "@/lib/types";
+
+/** 改這一張的某幾個欄位。沒給就是唯讀（縮圖列、匯出） */
+type EditSlide<S extends Slide> = ((changes: Partial<S>) => void) | undefined;
 
 const { padding, contentWidth, contentLeft } = METRICS;
 
@@ -107,9 +111,11 @@ function SwipePill({ palette }: { palette: Palette }) {
 function CoverBody({
   slide,
   palette,
+  onEdit,
 }: {
   slide: Extract<Slide, { kind: "cover" }>;
   palette: Palette;
+  onEdit: EditSlide<Extract<Slide, { kind: "cover" }>>;
 }) {
   const banner = METRICS.image.coverBanner;
   const square = METRICS.image.square;
@@ -152,7 +158,13 @@ function CoverBody({
           color: palette.text,
         }}
       >
-        <RichText value={slide.title} palette={palette} />
+        <SlideText
+          value={slide.title}
+          onChange={onEdit && ((title) => onEdit({ title }))}
+          multiline
+        >
+          <RichText value={slide.title} palette={palette} />
+        </SlideText>
       </div>
     </>
   );
@@ -161,9 +173,11 @@ function CoverBody({
 function ContentBody({
   slide,
   palette,
+  onEdit,
 }: {
   slide: Extract<Slide, { kind: "content" }>;
   palette: Palette;
+  onEdit: EditSlide<Extract<Slide, { kind: "content" }>>;
 }) {
   return (
     <>
@@ -195,9 +209,11 @@ function ContentBody({
           color: palette.text,
         }}
       >
-        {slide.heading}
+        <SlideText value={slide.heading} onChange={onEdit && ((heading) => onEdit({ heading }))}>
+          {slide.heading}
+        </SlideText>
       </div>
-      <ContentArea slide={slide} palette={palette} />
+      <ContentArea slide={slide} palette={palette} onEdit={onEdit} />
     </>
   );
 }
@@ -210,9 +226,11 @@ function ContentBody({
 function ContentArea({
   slide,
   palette,
+  onEdit,
 }: {
   slide: Extract<Slide, { kind: "content" }>;
   palette: Palette;
+  onEdit: EditSlide<Extract<Slide, { kind: "content" }>>;
 }) {
   const hasImage = Boolean(slide.imageUrl) && slide.imageShape !== "none";
   const square = slide.imageShape === "square" ? METRICS.image.square.size : null;
@@ -243,7 +261,9 @@ function ContentArea({
           color: palette.text,
         }}
       >
-        <RichText value={slide.body} palette={palette} />
+        <SlideText value={slide.body} onChange={onEdit && ((body) => onEdit({ body }))} multiline>
+          <RichText value={slide.body} palette={palette} />
+        </SlideText>
       </div>
       {hasImage && (
         <img
@@ -268,9 +288,11 @@ const CTA_ICONS = [Heart, Comment, Send, Bookmark];
 export function CtaBody({
   slide,
   palette,
+  onEdit,
 }: {
   slide: Extract<Slide, { kind: "cta" }>;
   palette: Palette;
+  onEdit?: EditSlide<Extract<Slide, { kind: "cta" }>>;
 }) {
   const c = METRICS.cta;
   return (
@@ -288,7 +310,9 @@ export function CtaBody({
           color: palette.text,
         }}
       >
-        {slide.subhead}
+        <SlideText value={slide.subhead} onChange={onEdit && ((subhead) => onEdit({ subhead }))}>
+          {slide.subhead}
+        </SlideText>
       </div>
       <div
         style={{
@@ -304,7 +328,13 @@ export function CtaBody({
           color: palette.text,
         }}
       >
-        {slide.headline}
+        <SlideText
+          value={slide.headline}
+          onChange={onEdit && ((headline) => onEdit({ headline }))}
+          multiline
+        >
+          {slide.headline}
+        </SlideText>
       </div>
 
       <CurvedArrow
@@ -357,7 +387,18 @@ export function CtaBody({
             color: palette.ctaPillText,
           }}
         >
-          {stat}
+          <SlideText
+            value={stat}
+            onChange={
+              onEdit &&
+              ((next) =>
+                onEdit({
+                  stats: slide.stats.map((s, j) => (j === i ? next : s)) as typeof slide.stats,
+                }))
+            }
+          >
+            {stat}
+          </SlideText>
         </div>
       ))}
     </>
@@ -374,13 +415,15 @@ interface SlideCardProps {
    * 同一張同時出現在預覽欄與縮圖列時，不標這個就會匯出到那張幾十 px 的縮圖。
    */
   decorative?: boolean;
+  /** 給了就能在畫布上點文字直接改（預覽欄用）。改動是這一張的部分欄位 */
+  onEdit?: (changes: Partial<Slide>) => void;
 }
 
 /**
  * 一張貼文頁。永遠以 1080×1350 的真實尺寸渲染，
  * 縮放交給外層的 transform 處理，這樣匯出時才會逐 px 對得上 Canva。
  */
-export function SlideCard({ slide, handle, timestamp, theme, decorative }: SlideCardProps) {
+export function SlideCard({ slide, handle, timestamp, theme, decorative, onEdit }: SlideCardProps) {
   const palette = PALETTES[theme];
   return (
     <div
@@ -402,9 +445,9 @@ export function SlideCard({ slide, handle, timestamp, theme, decorative }: Slide
       {slide.kind !== "content" && (
         <Header handle={handle} timestamp={timestamp} palette={palette} />
       )}
-      {slide.kind === "cover" && <CoverBody slide={slide} palette={palette} />}
-      {slide.kind === "content" && <ContentBody slide={slide} palette={palette} />}
-      {slide.kind === "cta" && <CtaBody slide={slide} palette={palette} />}
+      {slide.kind === "cover" && <CoverBody slide={slide} palette={palette} onEdit={onEdit} />}
+      {slide.kind === "content" && <ContentBody slide={slide} palette={palette} onEdit={onEdit} />}
+      {slide.kind === "cta" && <CtaBody slide={slide} palette={palette} onEdit={onEdit} />}
       {slide.kind !== "cta" && <SwipePill palette={palette} />}
     </div>
   );

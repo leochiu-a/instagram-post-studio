@@ -374,6 +374,13 @@ export function PostEditor({ postId }: { postId: string }) {
               activeId={activeId}
               onSelect={setActiveId}
               onDownload={(slide, index) => void exportOne(slide, index)}
+              onEdit={(id, changes) =>
+                setSlides(
+                  post.slides.map((slide) =>
+                    slide.id === id ? ({ ...slide, ...changes } as Slide) : slide,
+                  ),
+                )
+              }
             />
           </section>
 

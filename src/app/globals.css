@@ -217,3 +217,26 @@
     scroll-behavior: auto !important;
   }
 }
+
+/*
+  畫布上可以直接改的文字（見 slide-text.tsx）。尺寸是畫布的 px，
+  預覽會整張縮小，所以線要畫粗一點縮完才看得到。
+  用 inset 的 box-shadow 而不是 outline：內文所在的版位是 overflow: hidden，
+  畫在外面的框會被切掉。hover 只給淡淡一層底色提示「這裡點得進去」，
+  真正在打字時才加上實線的 --ring。
+*/
+.slide-text {
+  cursor: text;
+  border-radius: 6px;
+  outline: none;
+}
+
+.slide-text:hover,
+.slide-text:focus-visible {
+  background-color: color-mix(in oklch, var(--ring) 14%, transparent) !important;
+}
+
+.slide-text[data-editing] {
+  background-color: color-mix(in oklch, var(--ring) 10%, transparent) !important;
+  box-shadow: inset 0 0 0 4px var(--ring);
+}

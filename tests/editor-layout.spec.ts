@@ -166,7 +166,11 @@ test("頂列讀數跟著選取改變，快捷列選中才出現", async ({ page 
   await expect(readout).toHaveText("1080×1350 · 05P");
   await expect(quickBar).toHaveCSS("opacity", "0");
 
-  await page.getByRole("button", { name: "選取第 1 張" }).click();
+  // 點畫布的左上角，避開可以直接改的文字
+  await page
+    .locator("[data-preview-slide]")
+    .first()
+    .click({ position: { x: 8, y: 8 } });
 
   // 選了才展開那一張的頁次與類型，快捷列跟著浮出來
   await expect(readout).toHaveText("01 / 05 · 封面 · 1080×1350");
@@ -197,4 +201,27 @@ test("點縮圖會選取那一張，並把預覽捲到它", async ({ page }) => 
       }),
     )
     .toBeLessThanOrEqual(2);
+});
+
+test("點畫布上的文字可以直接改，Esc 還原", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 820 });
+  const card = page.locator("[data-preview-slide]").nth(1);
+  const heading = SLIDES[1].kind === "content" ? SLIDES[1].heading : "";
+
+  await card.getByRole("button", { name: heading, exact: true }).click();
+  const field = card.locator("textarea");
+  await expect(field, "點下去就換成輸入框，游標已經在裡面").toBeFocused();
+  await expect(field).toHaveValue(heading);
+
+  // 單行欄位按 Enter 是改好了，不是換行
+  await field.fill("改過的標題");
+  await field.press("Enter");
+  await expect(field).toHaveCount(0);
+  await expect(card).toContainText("改過的標題");
+  await expect(page.locator("#editor-panel"), "改動寫回草稿").toContainText("## 改過的標題");
+
+  await card.getByRole("button", { name: "改過的標題", exact: true }).click();
+  await card.locator("textarea").fill("又改了一次");
+  await card.locator("textarea").press("Escape");
+  await expect(card, "Esc 還原成這次點進來之前的樣子").toContainText("改過的標題");
 });

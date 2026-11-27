@@ -31,6 +31,8 @@ interface PreviewListProps {
   activeId: string | null;
   onSelect: (id: string) => void;
   onDownload: (slide: Slide, index: number) => void;
+  /** 在畫布上直接改字（見 SlideText） */
+  onEdit: (id: string, changes: Partial<Slide>) => void;
 }
 
 export function PreviewList({
@@ -41,6 +43,7 @@ export function PreviewList({
   activeId,
   onSelect,
   onDownload,
+  onEdit,
 }: PreviewListProps) {
   const { ref, scale } = useCanvasScale(MAX_SCALE, GUTTER_X, GUTTER_Y);
 
@@ -88,24 +91,35 @@ export function PreviewList({
               </Button>
             </div>
 
-            <button
-              type="button"
+            {/*
+              不是 <button>：畫布裡的文字點了會變成 textarea，
+              按鈕裡放輸入框是無效的 HTML，Firefox 還會把點擊吃掉不給 focus。
+              用鍵盤的話，Tab 進到畫布裡任一段字時 onFocus 一樣會選到這一張；
+              縮圖列也能選頁。
+            */}
+            {/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- 鍵盤路徑走 onFocus 與縮圖列 */}
+            <div
               onClick={() => onSelect(slide.id)}
-              aria-pressed={active}
-              aria-label={`選取第 ${index + 1} 張`}
+              onFocus={() => onSelect(slide.id)}
               className={cn(
                 // 沒有外框：畫布靠陰影從冷灰檯面上浮起來就夠了。
                 // 陰影也只要很輕的一層，太重會顯髒，也會蓋過版型自己的顏色
-                "focus-visible:ring-ring/50 block overflow-hidden rounded-lg shadow-[0_1px_3px_rgb(14_19_24/0.1),0_8px_24px_-8px_rgb(14_19_24/0.14)] transition-[box-shadow,--tw-ring-color] duration-100 outline-none focus-visible:ring-3",
+                "block overflow-hidden rounded-lg shadow-[0_1px_3px_rgb(14_19_24/0.1),0_8px_24px_-8px_rgb(14_19_24/0.14)] transition-[box-shadow,--tw-ring-color] duration-100",
                 // 選取是狀態不是裝飾，所以它是唯一還畫線的地方 —— 也是全站唯一的彩色
                 active && "ring-ring ring-2",
               )}
               style={{ width: CANVAS.width * scale, height: CANVAS.height * scale }}
             >
               <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
-                <SlideCard slide={slide} handle={handle} timestamp={timestamp} theme={theme} />
+                <SlideCard
+                  slide={slide}
+                  handle={handle}
+                  timestamp={timestamp}
+                  theme={theme}
+                  onEdit={(changes) => onEdit(slide.id, changes)}
+                />
               </div>
-            </button>
+            </div>
           </div>
         );
       })}
