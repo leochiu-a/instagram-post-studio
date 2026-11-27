@@ -25,27 +25,29 @@ cta:
 
 為了讓 Google 收錄網頁，很多網站會放行 Googlebot。但 `User-Agent` 是請求方自己設定的，其他爬蟲也能設定 Googlebot。
 
-Cloudflare 的 Managed Rules 裡有一條 `Fake Google Bot`。請求自稱 Googlebot，來源又驗不過，就會被這條規則抓到。
+Cloudflare 的 Managed Rules 有一條 `Fake Google Bot`，專抓自稱 Googlebot，但來源卻驗不過的請求。
 
 ## 怎麼確認爬蟲是真是假？
 
-申請 Verified Bot 時，要先說明誰在跑這支爬蟲、拿來做什麼。Cloudflare 會用公開的 IP 清單、反向 DNS 或請求簽章確認身分。
+那真的 Googlebot 呢？Cloudflare 有一份 Verified Bot 名單，收的是確認過身分的爬蟲，Googlebot 就在上面。爬蟲業者可以申請加入，申請時要說明誰在跑這支爬蟲、拿來做什麼。Cloudflare 會用公開的 IP 清單、反向 DNS 或請求簽章確認身分。
 
 認證後還得遵守 `robots.txt`、控制抓取頻率，不能攻擊網站。如果同一個組織反覆違規，旗下所有 bot 都可能被撤銷認證。
 
 ## 每支 bot 都有分類標籤
 
-Cloudflare 的 WAF 沿用原本的 17 種分類。Googlebot 歸在 Search Engine Crawler。你在 Slack 或 Discord 貼連結時，來抓預覽的 bot 屬於 Page Preview。
+在 verified bot 名單上的每支 bot 都會被歸到一個分類，總共 17 種。
 
-寫 WAF 規則時，可以直接拿這些分類當條件。
+像 Googlebot 是 Search Engine Crawler，你在 Slack 或 Discord 貼連結時跑來抓預覽的，則是 Page Preview。
+
+在 Cloudflare 的防火牆（WAF）寫規則時，可以直接拿這些分類當條件。
 
 ## 與 AI 相關的三種分類
 
 如果你想讓文章出現在 AI 搜尋結果裡，又介意內容被抓去訓練模型，寫 WAF 規則時會遇到這三個分類。
 
-- AI Crawler 抓網頁做訓練資料，像 `GPTBot`
-- AI Assistant 有人叫才來，像 `Perplexity-User`
-- AI Search 做搜尋索引，像 `OAI-SearchBot`
+- AI Crawler：抓網頁做訓練資料，像 `GPTBot`
+- AI Assistant：叫了才來，像 `Perplexity-User`
+- AI Search：做搜尋索引，像 `OAI-SearchBot`
 
 ## WAF 只擋訓練用爬蟲
 
