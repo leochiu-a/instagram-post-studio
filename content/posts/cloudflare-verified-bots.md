@@ -41,6 +41,8 @@ Cloudflare 把名單上的 bot 分成 17 類。Googlebot 屬於 Search Engine Cr
 
 寫 Cloudflare 防火牆（WAF）規則時，可以用這些分類當條件。
 
+不在名單上的請求，Cloudflare 會用機器學習打一個 bot score，1 到 99 分，越低越像機器人，低於 30 分通常就是 bot。完整分數要 Enterprise 加購 Bot Management 才看得到。
+
 ## 三種 AI 爬蟲
 
 想讓 AI 搜尋找到文章，又想擋掉訓練爬蟲？先看這三類 bot 各自來做什麼。
