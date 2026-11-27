@@ -55,6 +55,12 @@ const PANELS = [
 type PanelName = (typeof PANELS)[number]["value"];
 
 /**
+ * 編輯欄與預覽是不是左右並排（lg）。窄螢幕是上下堆疊的一條長頁面，
+ * 這時候為了「跟著編輯的地方」去捲預覽，等於把正在打字的欄位捲走。
+ */
+const isSplitLayout = () => window.matchMedia("(min-width: 64rem)").matches;
+
+/**
  * 從縮圖列跳到某一張。捲的是預覽欄裡那張卡片的外框，不是 data-slide-id ——
  * 後者是匯出用的內層節點，捲它會停在錯的位置。
  */
@@ -320,9 +326,7 @@ export function PostEditor({ postId }: { postId: string }) {
                   value={draft}
                   onChange={editDraft}
                   onCursor={(doc, offset) => {
-                    // 窄螢幕是上下堆疊的一條長頁面，捲去預覽就等於把編輯器捲走，
-                    // 根本沒辦法打字。只有左右分欄（lg）時兩邊同時看得到，才值得連動。
-                    if (!window.matchMedia("(min-width: 64rem)").matches) return;
+                    if (!isSplitLayout()) return;
                     // 草稿與頁面順序一致（逐頁那邊也是照這份切），用第幾頁對回去就好。
                     // 剛打出新標題、還沒套用的那幾百毫秒會對不到，就先不動。
                     const index = slideIndexAt(doc, offset);
@@ -344,6 +348,7 @@ export function PostEditor({ postId }: { postId: string }) {
                   onChange={setSlides}
                   activeId={activeId}
                   onFocus={(id) => {
+                    if (!isSplitLayout()) return;
                     setActiveId(id);
                     scrollPreviewIntoView(id);
                   }}
